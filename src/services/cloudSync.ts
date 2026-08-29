@@ -5,6 +5,9 @@ const AUTH_USER_KEY = 'frame_auth_user';
 
 export const getWorkerApiUrl = (): string => {
   let url = ((import.meta as any).env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  if (!url && typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
   }

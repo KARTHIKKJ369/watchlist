@@ -2,6 +2,11 @@ name = "watchlist"
 main = "cloudflare-worker/src/index.ts"
 compatibility_date = "2026-08-29"
 
+# Serve React Frontend Static Assets (Single-Page App)
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+
 # Bind Cloudflare D1 Database
 [[d1_databases]]
 binding = "frame_db"

@@ -180,18 +180,23 @@ export default {
       await ensureTablesExist(db);
     }
 
-    // Favicon handler
-    if (path === '/favicon.ico') {
-      return new Response(null, { status: 204 });
-    }
-
-    // Health / Root check
-    if (path === '/' || path === '/health') {
+    // Health check
+    if (path === '/health' || path === '/api/health') {
       return jsonResponse({
         status: 'online',
         service: 'FRAME Serverless Cinema Vault API',
         time: new Date().toISOString(),
       });
+    }
+
+    // Serve Frontend React SPA Static Assets for all non-API routes
+    if (!path.startsWith('/api/') && env.ASSETS) {
+      return env.ASSETS.fetch(request);
+    }
+
+    // Favicon handler
+    if (path === '/favicon.ico') {
+      return new Response(null, { status: 204 });
     }
 
     // 1. Authentication: Register

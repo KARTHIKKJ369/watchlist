@@ -10,6 +10,7 @@ import {
 } from '@phosphor-icons/react';
 import { FrameLogo } from './FrameLogo';
 import { useWatchlist } from '../context/WatchlistContext';
+import { triggerHaptic } from '../services/nativeService';
 
 export const Navbar: React.FC = () => {
   const {
@@ -21,13 +22,18 @@ export const Navbar: React.FC = () => {
     toggleTheme,
   } = useWatchlist();
 
+  const handleTabChange = (tab: 'watchlist' | 'releases' | 'stats') => {
+    triggerHaptic('selection');
+    setActiveTab(tab);
+  };
+
   return (
     <>
       {/* Top Navigation Bar */}
       <header className="navbar-bar">
         <div className="navbar-inner">
           {/* Brand Logotype */}
-          <div className="navbar-brand" onClick={() => setActiveTab('watchlist')}>
+          <div className="navbar-brand" onClick={() => handleTabChange('watchlist')}>
             <FrameLogo size={22} className="brand-icon" />
             <span className="brand-logotype">FRAME</span>
           </div>
@@ -36,21 +42,21 @@ export const Navbar: React.FC = () => {
           <nav className="navbar-links">
             <button
               className={`nav-text-link ${activeTab === 'watchlist' ? 'active' : ''}`}
-              onClick={() => setActiveTab('watchlist')}
+              onClick={() => handleTabChange('watchlist')}
             >
               Watchlist
             </button>
 
             <button
               className={`nav-text-link ${activeTab === 'releases' ? 'active' : ''}`}
-              onClick={() => setActiveTab('releases')}
+              onClick={() => handleTabChange('releases')}
             >
               OTT
             </button>
 
             <button
               className={`nav-text-link ${activeTab === 'stats' ? 'active' : ''}`}
-              onClick={() => setActiveTab('stats')}
+              onClick={() => handleTabChange('stats')}
             >
               Insights
             </button>
@@ -74,7 +80,10 @@ export const Navbar: React.FC = () => {
 
             <button
               className="btn-primary-add"
-              onClick={() => openAddModal()}
+              onClick={() => {
+                triggerHaptic('light');
+                openAddModal();
+              }}
             >
               <Plus size={14} weight="bold" />
               <span>Add</span>
@@ -82,7 +91,10 @@ export const Navbar: React.FC = () => {
 
             <button
               className="btn-icon-action"
-              onClick={openSettingsModal}
+              onClick={() => {
+                triggerHaptic('light');
+                openSettingsModal();
+              }}
               title="Account & Vault"
               aria-label="Account Settings"
             >
@@ -96,7 +108,7 @@ export const Navbar: React.FC = () => {
       <nav className="mobile-nav">
         <button
           className={`mobile-icon-btn ${activeTab === 'watchlist' ? 'active' : ''}`}
-          onClick={() => setActiveTab('watchlist')}
+          onClick={() => handleTabChange('watchlist')}
           aria-label="Watchlist"
         >
           <FilmStrip size={22} weight={activeTab === 'watchlist' ? 'fill' : 'regular'} />
@@ -104,7 +116,7 @@ export const Navbar: React.FC = () => {
 
         <button
           className={`mobile-icon-btn ${activeTab === 'releases' ? 'active' : ''}`}
-          onClick={() => setActiveTab('releases')}
+          onClick={() => handleTabChange('releases')}
           aria-label="OTT Releases"
         >
           <Broadcast size={22} weight={activeTab === 'releases' ? 'fill' : 'regular'} />
@@ -112,7 +124,7 @@ export const Navbar: React.FC = () => {
 
         <button
           className={`mobile-icon-btn ${activeTab === 'stats' ? 'active' : ''}`}
-          onClick={() => setActiveTab('stats')}
+          onClick={() => handleTabChange('stats')}
           aria-label="Insights"
         >
           <ChartBar size={22} weight={activeTab === 'stats' ? 'fill' : 'regular'} />
@@ -127,7 +139,8 @@ export const Navbar: React.FC = () => {
           z-index: 50;
           background: var(--bg);
           border-bottom: 1px solid var(--border);
-          height: var(--header-height);
+          padding-top: var(--safe-top);
+          height: calc(var(--header-height) + var(--safe-top));
           transition: background-color 200ms ease, border-color 200ms ease;
         }
 
@@ -249,11 +262,13 @@ export const Navbar: React.FC = () => {
           bottom: 0;
           left: 0;
           right: 0;
-          height: var(--bottom-nav-height);
+          padding-bottom: var(--safe-bottom);
+          height: calc(var(--bottom-nav-height) + var(--safe-bottom));
           background: var(--bg);
           border-top: 1px solid var(--border);
           z-index: 60;
-          padding: 0 16px;
+          padding-left: 16px;
+          padding-right: 16px;
           justify-content: space-around;
           align-items: center;
           transition: background-color 200ms ease, border-color 200ms ease;

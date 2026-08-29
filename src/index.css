@@ -16,6 +16,10 @@
 
   --header-height: 58px;
   --bottom-nav-height: 54px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
@@ -51,7 +55,10 @@ body {
   selection-background-color: var(--accent);
   selection-color: var(--bg);
   overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
   transition: background-color 200ms ease, color 200ms ease;
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
 }
 
 /* Base Layout */
@@ -66,12 +73,12 @@ body {
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 40px 24px calc(80px + var(--safe-bottom));
 }
 
 @media (max-width: 768px) {
   .main-content {
-    padding: 24px 16px 88px;
+    padding: 24px 16px calc(88px + var(--safe-bottom));
   }
 }
 
@@ -257,6 +264,7 @@ input::placeholder, textarea::placeholder {
     border-bottom: none;
     border-left: none;
     border-right: none;
+    padding-bottom: max(16px, var(--safe-bottom));
   }
 }
 

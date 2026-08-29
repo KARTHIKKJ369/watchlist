@@ -11,6 +11,7 @@ import {
   syncWatchlistToCloud,
   fetchWatchlistFromCloud,
 } from '../services/cloudSync';
+import { updateNativeStatusBar, triggerHaptic } from '../services/nativeService';
 
 interface ToastMessage {
   id: string;
@@ -113,9 +114,10 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     return theme;
   }, [theme, systemIsLight]);
 
-  // Apply theme to document root
+  // Apply theme to document root & native status bar
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', resolvedTheme);
+    updateNativeStatusBar(resolvedTheme);
   }, [resolvedTheme]);
 
   const setThemeMode = (mode: ThemeMode) => {
@@ -133,6 +135,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const toggleTheme = () => {
+    triggerHaptic('light');
     const nextTheme: 'light' | 'dark' = resolvedTheme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
     localStorage.setItem(THEME_KEY, nextTheme);
@@ -310,6 +313,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
     const nextList = [newItem, ...watchlist];
     setWatchlist(nextList);
+    triggerHaptic('success');
     showToast(`Added "${newItem.title}" to collection`, 'success');
     if (getAuthUser()) {
       syncWatchlistToCloud(nextList);
@@ -324,6 +328,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     if (selectedItem?.id === id) {
       setSelectedItem(null);
     }
+    triggerHaptic('warning');
     showToast(`Removed "${item?.title || 'Title'}"`, 'info');
     if (getAuthUser()) {
       syncWatchlistToCloud(nextList);
@@ -350,7 +355,10 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         updatedAt: new Date().toISOString(),
       };
       nextList = [newItem, ...watchlist];
+      triggerHaptic('success');
       showToast(`Added "${newItem.title}" to collection`, 'success');
+    } else {
+      triggerHaptic('light');
     }
 
     setWatchlist(nextList);
@@ -365,6 +373,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const openDetailModal = async (item: WatchlistItem) => {
+    triggerHaptic('light');
     setSelectedItem(item);
 
     if (item.tmdbId) {

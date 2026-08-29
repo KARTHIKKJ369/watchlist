@@ -6,7 +6,9 @@
 export interface Env {
   DB?: D1Database;
   frame_db?: D1Database;
+  watchlist?: D1Database;
   JWT_SECRET?: string;
+  [key: string]: any;
 }
 
 // Auto-initialize tables and indexes on first request (Self-healing schema)
@@ -160,10 +162,16 @@ export default {
     const url = new URL(request.url);
     const path = url.pathname;
     const secret = env.JWT_SECRET || 'FRAME_CINEMA_APP_2026';
-    const db = env.DB || env.frame_db;
+    const db: D1Database | undefined =
+      env.DB ||
+      env.frame_db ||
+      env.watchlist ||
+      (Object.values(env).find(
+        (val) => val && typeof val === 'object' && typeof (val as any).prepare === 'function'
+      ) as D1Database | undefined);
 
     if (!db && path.startsWith('/api/')) {
-      return jsonResponse({ error: 'D1 Database binding missing in worker configuration' }, 500);
+      return jsonResponse({ error: 'D1 Database binding missing. Please attach your D1 database in Cloudflare Settings -> Bindings.' }, 500);
     }
 
     // Auto-ensure D1 tables exist on any API call

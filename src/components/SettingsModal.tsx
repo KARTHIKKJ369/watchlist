@@ -7,6 +7,8 @@ import {
   SignOut,
   ArrowClockwise,
   GlobeHemisphereWest,
+  Eye,
+  EyeSlash,
 } from '@phosphor-icons/react';
 import {
   getAuthUser,
@@ -51,6 +53,7 @@ export const SettingsModal: React.FC = () => {
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [selectedRegionInput, setSelectedRegionInput] = useState(region);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -241,14 +244,25 @@ export const SettingsModal: React.FC = () => {
                     className="api-input"
                     autoComplete="username"
                   />
-                  <input
-                    type="password"
-                    placeholder="Password"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    className="api-input"
-                    autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
-                  />
+                  <div className="password-input-wrap">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Password"
+                      value={passwordInput}
+                      onChange={(e) => setPasswordInput(e.target.value)}
+                      className="api-input password-input"
+                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
+                    />
+                    <button
+                      type="button"
+                      className="btn-show-password"
+                      onClick={() => setShowPassword(!showPassword)}
+                      title={showPassword ? 'Hide password' : 'Show password'}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
 
                 <div className="auth-region-field">
@@ -519,6 +533,38 @@ export const SettingsModal: React.FC = () => {
         .api-input {
           font-size: 0.8125rem;
           height: 36px;
+        }
+
+        .password-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+          width: 100%;
+        }
+
+        .password-input {
+          padding-right: 36px;
+          width: 100%;
+        }
+
+        .btn-show-password {
+          position: absolute;
+          right: 4px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--ink-2);
+          padding: 6px;
+          border-radius: var(--radius-sm);
+          background: transparent;
+          cursor: pointer;
+          transition: color 150ms ease;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .btn-show-password:hover {
+          color: var(--ink);
         }
 
         .btn-primary-auth {

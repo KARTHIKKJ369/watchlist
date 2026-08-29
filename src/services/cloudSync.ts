@@ -4,7 +4,11 @@ const AUTH_TOKEN_KEY = 'frame_auth_token';
 const AUTH_USER_KEY = 'frame_auth_user';
 
 export const getWorkerApiUrl = (): string => {
-  return ((import.meta as any).env?.VITE_API_URL || '').replace(/\/+$/, '');
+  let url = ((import.meta as any).env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
+    url = `https://${url}`;
+  }
+  return url;
 };
 
 export const getAuthToken = (): string => {

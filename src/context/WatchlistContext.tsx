@@ -6,6 +6,11 @@ import type {
   WatchStatus,
 } from '../types';
 import { fetchMediaDetails, getUserRegion, setUserRegion } from '../services/tmdbApi';
+import {
+  getAuthUser,
+  syncWatchlistToCloud,
+  fetchWatchlistFromCloud,
+} from '../services/cloudSync';
 
 interface ToastMessage {
   id: string;
@@ -17,6 +22,8 @@ export type ThemeMode = 'system' | 'light' | 'dark';
 
 interface WatchlistContextType {
   watchlist: WatchlistItem[];
+  setWatchlist: React.Dispatch<React.SetStateAction<WatchlistItem[]>>;
+  reloadFromCloud: () => Promise<boolean>;
   activeTab: 'watchlist' | 'releases' | 'stats';
   setActiveTab: (tab: 'watchlist' | 'releases' | 'stats') => void;
   selectedItem: WatchlistItem | null;
@@ -140,6 +147,64 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       console.error('Failed to save watchlist to localStorage', e);
     }
   }, [watchlist]);
+
+  // 1. Initial Cloud Sync on mount
+  useEffect(() => {
+    const user = getAuthUser();
+    if (user) {
+      fetchWatchlistFromCloud().then((res) => {
+        if (res.success && res.items && res.items.length > 0) {
+          setWatchlist((localList) => {
+            const cloudMap = new Map(res.items!.map((i) => [i.id, i]));
+            const localOnly = localList.filter((l) => !cloudMap.has(l.id));
+            if (localOnly.length > 0) {
+              const merged = [...res.items!, ...localOnly];
+              syncWatchlistToCloud(merged);
+              return merged;
+            }
+            return res.items!;
+          });
+        } else if (watchlist.length > 0) {
+          syncWatchlistToCloud(watchlist);
+        }
+      });
+    }
+  }, []);
+
+  // 2. Real-time background sync when watchlist changes (debounced 1.2s)
+  useEffect(() => {
+    const user = getAuthUser();
+    if (!user) return;
+    const timer = setTimeout(() => {
+      syncWatchlistToCloud(watchlist);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [watchlist]);
+
+  // 3. Cross-device re-fetch on window focus
+  useEffect(() => {
+    const onFocus = () => {
+      const user = getAuthUser();
+      if (user) {
+        fetchWatchlistFromCloud().then((res) => {
+          if (res.success && res.items && res.items.length > 0) {
+            setWatchlist(res.items);
+          }
+        });
+      }
+    };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
+
+  const reloadFromCloud = async (): Promise<boolean> => {
+    const res = await fetchWatchlistFromCloud();
+    if (res.success && res.items) {
+      setWatchlist(res.items);
+      return true;
+    }
+    return false;
+  };
 
   const showToast = (message: string, type: 'success' | 'info' | 'error' = 'success') => {
     const id = Date.now().toString() + Math.random().toString(36).substring(2, 5);
@@ -451,6 +516,8 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     <WatchlistContext.Provider
       value={{
         watchlist,
+        setWatchlist,
+        reloadFromCloud,
         activeTab,
         setActiveTab,
         selectedItem,

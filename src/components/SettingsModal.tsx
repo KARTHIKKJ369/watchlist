@@ -43,6 +43,7 @@ export const SettingsModal: React.FC = () => {
     exportWatchlistAsJSON,
     importWatchlistFromJSON,
     watchlist,
+    setWatchlist,
     showToast,
     region,
     setRegion,
@@ -92,9 +93,28 @@ export const SettingsModal: React.FC = () => {
       setCloudUser(res.user);
       setUsernameInput('');
       setPasswordInput('');
-      showToast(`Welcome back, @${res.user.username}`, 'success');
-      // Auto-sync current watchlist
-      syncWatchlistToCloud(watchlist);
+
+      // Fetch cloud items immediately on login
+      const cloudRes = await fetchWatchlistFromCloud();
+      if (cloudRes.success && cloudRes.items && cloudRes.items.length > 0) {
+        setWatchlist((localList) => {
+          const cloudMap = new Map(cloudRes.items!.map((i) => [i.id, i]));
+          const localOnly = localList.filter((l) => !cloudMap.has(l.id));
+          if (localOnly.length > 0) {
+            const merged = [...cloudRes.items!, ...localOnly];
+            syncWatchlistToCloud(merged);
+            return merged;
+          }
+          return cloudRes.items!;
+        });
+        showToast(`Welcome back, @${res.user.username}! Loaded ${cloudRes.items.length} titles from cloud.`, 'success');
+      } else {
+        // First-time or cloud is empty, sync current local list up
+        if (watchlist.length > 0) {
+          await syncWatchlistToCloud(watchlist);
+        }
+        showToast(`Welcome back, @${res.user.username}!`, 'success');
+      }
     } else {
       showToast(res.error || 'Authentication failed', 'error');
     }
@@ -122,7 +142,7 @@ export const SettingsModal: React.FC = () => {
     const res = await fetchWatchlistFromCloud();
     setIsSyncing(false);
     if (res.success && res.items) {
-      importWatchlistFromJSON(JSON.stringify(res.items));
+      setWatchlist(res.items);
       showToast(`Restored ${res.items.length} titles from cloud account`, 'success');
     } else {
       showToast(res.error || 'Fetch failed', 'error');

@@ -1,0 +1,23 @@
+{
+  "name": "FRAME — Personal Cinema Vault",
+  "short_name": "FRAME",
+  "description": "An intentional, cinematic personal collection & watchlist for films and television.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "any"
+    },
+    {
+      "src": "/logo.jpg",
+      "type": "image/jpeg",
+      "sizes": "1024x1024"
+    }
+  ],
+  "categories": ["entertainment", "movies", "lifestyle"]
+}

@@ -1,0 +1,6 @@
+# Robots.txt for FRAME Cinema Vault
+User-agent: *
+Allow: /
+
+# Sitemaps
+Sitemap: https://frame.karthikjayan.tech/sitemap.xml

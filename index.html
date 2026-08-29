@@ -2,10 +2,60 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+    
+    <!-- Primary Page Metadata -->
+    <title>FRAME — Personal Cinema Vault & Watchlist</title>
+    <meta name="title" content="FRAME — Personal Cinema Vault & Watchlist" />
+    <meta
+      name="description"
+      content="FRAME is an intentional, distraction-free cinema vault & streaming release tracker for cinephiles. Curate watchlists, log film ratings, track OTT releases across Netflix, Prime Video, Disney+, Apple TV+, and sync across devices."
+    />
+    <meta
+      name="keywords"
+      content="cinema watchlist, movie tracker, film collection, letterboxd alternative, stream releases, ott tracker, tmdb movie logger, cinephile vault, movie ratings, tv show tracker, minimal cinema app"
+    />
+    <meta name="author" content="Karthik Jayan" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://frame.karthikjayan.tech/" />
+
+    <!-- Open Graph / Facebook / WhatsApp / LinkedIn -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://frame.karthikjayan.tech/" />
+    <meta property="og:site_name" content="FRAME" />
+    <meta property="og:title" content="FRAME — Personal Cinema Vault & Watchlist" />
+    <meta
+      property="og:description"
+      content="An intentional, distraction-free cinema vault & streaming tracker for films and television. Sync across devices with zero noise."
+    />
+    <meta property="og:image" content="https://frame.karthikjayan.tech/logo.jpg" />
+    <meta property="og:image:alt" content="FRAME Cinema Vault Logo" />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter / X Cards -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://frame.karthikjayan.tech/" />
+    <meta name="twitter:title" content="FRAME — Personal Cinema Vault & Watchlist" />
+    <meta
+      name="twitter:description"
+      content="An intentional, distraction-free cinema vault & streaming tracker for cinephiles. Curate, log ratings, track OTT releases."
+    />
+    <meta name="twitter:image" content="https://frame.karthikjayan.tech/logo.jpg" />
+
+    <!-- Mobile & PWA Theme -->
+    <meta name="theme-color" content="#0a0a0c" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#f6f5f2" media="(prefers-color-scheme: light)" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="FRAME" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>FRAME — Personal Cinema Vault</title>
-    <meta name="description" content="A restrained, cinematic personal collection & watchlist for films and television." />
+    <link rel="apple-touch-icon" href="/logo.jpg" />
+
     <!-- Typography: DM Serif Display & Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -13,6 +63,30 @@
       href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Structured Data (JSON-LD) for Search Engines -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "FRAME",
+        "alternateName": "FRAME Cinema Vault",
+        "url": "https://frame.karthikjayan.tech/",
+        "applicationCategory": "EntertainmentApplication",
+        "operatingSystem": "All",
+        "description": "An intentional personal cinema vault and OTT streaming release tracker for films and television.",
+        "image": "https://frame.karthikjayan.tech/logo.jpg",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        },
+        "author": {
+          "@type": "Person",
+          "name": "Karthik Jayan"
+        }
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

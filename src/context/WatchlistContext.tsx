@@ -148,46 +148,35 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, [watchlist]);
 
-  // 1. Initial Cloud Sync on mount
+  // 1. Initial Cloud Sync on mount (Cloud is canonical source of truth for logged-in user)
   useEffect(() => {
     const user = getAuthUser();
     if (user) {
       fetchWatchlistFromCloud().then((res) => {
-        if (res.success && res.items && res.items.length > 0) {
-          setWatchlist((localList) => {
-            const cloudMap = new Map(res.items!.map((i) => [i.id, i]));
-            const localOnly = localList.filter((l) => !cloudMap.has(l.id));
-            if (localOnly.length > 0) {
-              const merged = [...res.items!, ...localOnly];
-              syncWatchlistToCloud(merged);
-              return merged;
-            }
-            return res.items!;
-          });
-        } else if (watchlist.length > 0) {
-          syncWatchlistToCloud(watchlist);
+        if (res.success && Array.isArray(res.items)) {
+          setWatchlist(res.items);
         }
       });
     }
   }, []);
 
-  // 2. Real-time background sync when watchlist changes (debounced 1.2s)
+  // 2. Real-time background sync when watchlist changes (debounced 600ms)
   useEffect(() => {
     const user = getAuthUser();
     if (!user) return;
     const timer = setTimeout(() => {
       syncWatchlistToCloud(watchlist);
-    }, 1200);
+    }, 600);
     return () => clearTimeout(timer);
   }, [watchlist]);
 
-  // 3. Cross-device re-fetch on window focus
+  // 3. Cross-device re-fetch on window focus (syncs immediately when switching back to device)
   useEffect(() => {
     const onFocus = () => {
       const user = getAuthUser();
       if (user) {
         fetchWatchlistFromCloud().then((res) => {
-          if (res.success && res.items && res.items.length > 0) {
+          if (res.success && Array.isArray(res.items)) {
             setWatchlist(res.items);
           }
         });
@@ -319,47 +308,59 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       });
     }
 
-    setWatchlist((prev) => [newItem, ...prev]);
+    const nextList = [newItem, ...watchlist];
+    setWatchlist(nextList);
     showToast(`Added "${newItem.title}" to collection`, 'success');
+    if (getAuthUser()) {
+      syncWatchlistToCloud(nextList);
+    }
     return true;
   };
 
   const removeFromWatchlist = (id: string) => {
     const item = watchlist.find((w) => w.id === id);
-    setWatchlist((prev) => prev.filter((w) => w.id !== id));
+    const nextList = watchlist.filter((w) => w.id !== id);
+    setWatchlist(nextList);
     if (selectedItem?.id === id) {
       setSelectedItem(null);
     }
     showToast(`Removed "${item?.title || 'Title'}"`, 'info');
+    if (getAuthUser()) {
+      syncWatchlistToCloud(nextList);
+    }
   };
 
   const updateWatchlistItem = (id: string, updates: Partial<WatchlistItem>) => {
-    setWatchlist((prev) => {
-      const exists = prev.some((w) => w.id === id);
-      if (!exists && selectedItem && selectedItem.id === id) {
-        const newItem: WatchlistItem = {
-          ...selectedItem,
+    let nextList = watchlist.map((item) => {
+      if (item.id === id) {
+        return {
+          ...item,
           ...updates,
           updatedAt: new Date().toISOString(),
         };
-        showToast(`Added "${newItem.title}" to collection`, 'success');
-        return [newItem, ...prev];
       }
-      return prev.map((item) => {
-        if (item.id === id) {
-          const updated = {
-            ...item,
-            ...updates,
-            updatedAt: new Date().toISOString(),
-          };
-          return updated;
-        }
-        return item;
-      });
+      return item;
     });
+
+    const exists = watchlist.some((w) => w.id === id);
+    if (!exists && selectedItem && selectedItem.id === id) {
+      const newItem: WatchlistItem = {
+        ...selectedItem,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+      nextList = [newItem, ...watchlist];
+      showToast(`Added "${newItem.title}" to collection`, 'success');
+    }
+
+    setWatchlist(nextList);
 
     if (selectedItem?.id === id) {
       setSelectedItem((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : null));
+    }
+
+    if (getAuthUser()) {
+      syncWatchlistToCloud(nextList);
     }
   };
 

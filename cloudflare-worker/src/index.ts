@@ -180,6 +180,11 @@ export default {
       await ensureTablesExist(db);
     }
 
+    // Favicon handler
+    if (path === '/favicon.ico') {
+      return new Response(null, { status: 204 });
+    }
+
     // Health / Root check
     if (path === '/' || path === '/health') {
       return jsonResponse({

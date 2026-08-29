@@ -304,8 +304,8 @@ export const WatchlistGrid: React.FC = () => {
 
         @media (max-width: 768px) {
           .poster-grid {
-            grid-template-columns: repeat(2, 1fr);
-            gap: 24px 14px;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 20px 12px;
           }
         }
 

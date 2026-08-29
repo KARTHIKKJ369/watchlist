@@ -77,19 +77,19 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
             </div>
           )}
 
+          {/* Floating Status Indicator on Poster Top-Left */}
+          <div className="poster-status-anchor">
+            <span className={`poster-status-tag ${item.status}`}>
+              {getStatusLabel(item.status)}
+            </span>
+          </div>
+
           {/* Floating Stream Tag (Top-Right of Poster) */}
           {primaryStreamProvider && (
             <div className="poster-stream-anchor">
               <span className="stream-badge-tag">{primaryStreamProvider}</span>
             </div>
           )}
-
-          {/* Floating Status Indicator on Poster Bottom-Left */}
-          <div className="poster-status-anchor">
-            <span className={`status-type ${item.status}`}>
-              {getStatusLabel(item.status)}
-            </span>
-          </div>
         </motion.div>
       </div>
 
@@ -128,6 +128,8 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         .card-root {
           display: flex;
           flex-direction: column;
+          min-width: 0;
+          width: 100%;
           cursor: pointer;
           user-select: none;
           transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -171,8 +173,8 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         }
 
         .card-root:hover .poster-frame {
-          border-color: oklch(68% 0.18 30 / 0.5);
-          box-shadow: 0 10px 30px oklch(0% 0 0 / 0.6);
+          border-color: var(--accent);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
         }
 
         /* Fallback with subtle blurred artwork treatment */
@@ -203,78 +205,89 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         .poster-fallback-overlay {
           position: absolute;
           inset: 0;
-          background: linear-gradient(180deg, transparent 0%, oklch(10% 0.01 265 / 0.8) 100%);
+          background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
         }
 
         .fallback-title {
           position: relative;
           z-index: 2;
           font-family: var(--font-display);
-          font-size: 1.1rem;
-          color: var(--ink);
+          font-size: 1.05rem;
+          color: #ffffff;
           line-height: 1.3;
+        }
+
+        /* Top-Left Floating Status Badge */
+        .poster-status-anchor {
+          position: absolute;
+          top: 6px;
+          left: 6px;
+          z-index: 2;
+          background: rgba(0, 0, 0, 0.78);
+          backdrop-filter: blur(8px);
+          padding: 2.5px 7px;
+          border-radius: var(--radius-sm);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          line-height: 1;
+        }
+
+        .poster-status-tag {
+          font-family: var(--font-ui);
+          font-size: 0.625rem;
+          font-weight: 600;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          color: #ffffff;
+        }
+
+        .poster-status-tag.watching {
+          color: var(--accent);
         }
 
         /* Top-Right Floating Stream Badge */
         .poster-stream-anchor {
           position: absolute;
-          top: 8px;
-          right: 8px;
+          top: 6px;
+          right: 6px;
           z-index: 2;
-          background: oklch(10% 0.01 265 / 0.85);
+          background: rgba(0, 0, 0, 0.78);
           backdrop-filter: blur(8px);
-          padding: 2px 6px;
-          border-radius: 2px;
-          border: 1px solid var(--border);
-        }
-
-        [data-theme="light"] .poster-stream-anchor {
-          background: oklch(98% 0.003 265 / 0.9);
+          padding: 2.5px 7px;
+          border-radius: var(--radius-sm);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          line-height: 1;
         }
 
         .stream-badge-tag {
           font-family: var(--font-ui);
-          font-size: 0.6875rem;
+          font-size: 0.625rem;
           font-weight: 600;
-          color: var(--ink);
+          color: #ffffff;
           letter-spacing: 0.02em;
         }
 
-        /* Bottom-Left Status Badge */
-        .poster-status-anchor {
-          position: absolute;
-          bottom: 8px;
-          left: 8px;
-          z-index: 2;
-          background: oklch(10% 0.01 265 / 0.9);
-          backdrop-filter: blur(8px);
-          padding: 2px 7px;
-          border-radius: 2px;
-          border: 1px solid var(--border);
-        }
-
-        [data-theme="light"] .poster-status-anchor {
-          background: oklch(98% 0.003 265 / 0.9);
-        }
-
-        /* Caption Structure: Row 1 = Title + Rating; Row 2 = Year · Genre · Stream */
+        /* Caption Structure */
         .card-caption {
-          padding-top: 10px;
+          padding-top: 8px;
           display: flex;
           flex-direction: column;
-          gap: 3px;
+          gap: 2px;
+          min-width: 0;
+          width: 100%;
         }
 
         .caption-primary-row {
           display: flex;
           align-items: baseline;
           justify-content: space-between;
-          gap: 8px;
+          gap: 6px;
+          min-width: 0;
+          width: 100%;
         }
 
         .card-title {
           font-family: var(--font-display);
-          font-size: 1rem;
+          font-size: 0.9375rem;
           font-weight: 400;
           color: var(--ink);
           line-height: 1.25;
@@ -282,6 +295,7 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
           overflow: hidden;
           text-overflow: ellipsis;
           flex: 1;
+          min-width: 0;
           transition: color 150ms ease;
         }
 
@@ -290,10 +304,11 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         }
 
         .card-rating-val {
-          font-size: 0.8125rem;
+          font-size: 0.75rem;
           font-weight: 600;
           flex-shrink: 0;
           font-variant-numeric: tabular-nums;
+          white-space: nowrap;
           transition: color 150ms ease;
         }
 
@@ -303,18 +318,22 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
 
         .caption-secondary-row {
           font-family: var(--font-ui);
-          font-size: 0.75rem;
+          font-size: 0.6875rem;
           color: var(--ink-2);
           letter-spacing: 0.04em;
           text-transform: uppercase;
           display: flex;
           align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
+          gap: 5px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
         }
 
         .meta-sep {
           color: var(--border);
+          flex-shrink: 0;
         }
 
         .meta-genre {
@@ -326,6 +345,7 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         .meta-stream-label {
           color: var(--accent);
           font-weight: 600;
+          flex-shrink: 0;
         }
       `}</style>
     </div>

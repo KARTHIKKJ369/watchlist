@@ -5,13 +5,15 @@ import type {
   WatchlistStats,
   WatchStatus,
 } from '../types';
-import { fetchMediaDetails, INITIAL_WATCHLIST_DATA } from '../services/tmdbApi';
+import { fetchMediaDetails, getUserRegion, setUserRegion } from '../services/tmdbApi';
 
 interface ToastMessage {
   id: string;
   message: string;
   type: 'success' | 'info' | 'error';
 }
+
+export type ThemeMode = 'system' | 'light' | 'dark';
 
 interface WatchlistContextType {
   watchlist: WatchlistItem[];
@@ -22,6 +24,12 @@ interface WatchlistContextType {
   isSettingsModalOpen: boolean;
   toasts: ToastMessage[];
   stats: WatchlistStats;
+  theme: ThemeMode;
+  resolvedTheme: 'light' | 'dark';
+  toggleTheme: () => void;
+  setThemeMode: (mode: ThemeMode) => void;
+  region: string;
+  setRegion: (region: string) => void;
   openDetailModal: (item: WatchlistItem) => void;
   closeDetailModal: () => void;
   openAddModal: (prefillTitle?: string) => void;
@@ -43,7 +51,8 @@ interface WatchlistContextType {
   removeToast: (id: string) => void;
 }
 
-const STORAGE_KEY = 'cinepulse_watchlist_v4';
+const STORAGE_KEY = 'frame_vault_v1';
+const THEME_KEY = 'frame_theme';
 
 const WatchlistContext = createContext<WatchlistContextType | undefined>(undefined);
 
@@ -53,14 +62,14 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length >= 12) {
+        if (Array.isArray(parsed)) {
           return parsed;
         }
       }
     } catch (e) {
       console.error('Error loading watchlist from localStorage', e);
     }
-    return INITIAL_WATCHLIST_DATA;
+    return [];
   });
 
   const [activeTab, setActiveTab] = useState<'watchlist' | 'releases' | 'stats'>('watchlist');
@@ -68,6 +77,60 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Theme Management (Default: system preference)
+  const [theme, setTheme] = useState<ThemeMode>(() => {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
+    return 'system';
+  });
+
+  const [systemIsLight, setSystemIsLight] = useState<boolean>(() => {
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  });
+
+  // Listen to OS system theme changes
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+    const handleChange = (e: MediaQueryListEvent) => {
+      setSystemIsLight(e.matches);
+    };
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, []);
+
+  const resolvedTheme: 'light' | 'dark' = useMemo(() => {
+    if (theme === 'system') {
+      return systemIsLight ? 'light' : 'dark';
+    }
+    return theme;
+  }, [theme, systemIsLight]);
+
+  // Apply theme to document root
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', resolvedTheme);
+  }, [resolvedTheme]);
+
+  const setThemeMode = (mode: ThemeMode) => {
+    setTheme(mode);
+    localStorage.setItem(THEME_KEY, mode);
+  };
+
+  // User Region (Country for OTT / Streaming)
+  const [region, setRegionState] = useState<string>(() => getUserRegion());
+
+  const setRegion = (newRegion: string) => {
+    setUserRegion(newRegion);
+    setRegionState(newRegion.toUpperCase());
+    showToast(`Streaming region updated to ${newRegion.toUpperCase()}`, 'info');
+  };
+
+  const toggleTheme = () => {
+    const nextTheme: 'light' | 'dark' = resolvedTheme === 'dark' ? 'light' : 'dark';
+    setTheme(nextTheme);
+    localStorage.setItem(THEME_KEY, nextTheme);
+    showToast(`Switched to ${nextTheme} mode`, 'info');
+  };
 
   // Sync to localStorage
   useEffect(() => {
@@ -206,22 +269,33 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const updateWatchlistItem = (id: string, updates: Partial<WatchlistItem>) => {
-    setWatchlist((prev) =>
-      prev.map((item) => {
+    setWatchlist((prev) => {
+      const exists = prev.some((w) => w.id === id);
+      if (!exists && selectedItem && selectedItem.id === id) {
+        const newItem: WatchlistItem = {
+          ...selectedItem,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        };
+        showToast(`Added "${newItem.title}" to collection`, 'success');
+        return [newItem, ...prev];
+      }
+      return prev.map((item) => {
         if (item.id === id) {
           const updated = {
             ...item,
             ...updates,
             updatedAt: new Date().toISOString(),
           };
-          if (selectedItem?.id === id) {
-            setSelectedItem(updated);
-          }
           return updated;
         }
         return item;
-      })
-    );
+      });
+    });
+
+    if (selectedItem?.id === id) {
+      setSelectedItem((prev) => (prev ? { ...prev, ...updates, updatedAt: new Date().toISOString() } : null));
+    }
   };
 
   const openDetailModal = async (item: WatchlistItem) => {
@@ -291,7 +365,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     downloadAnchor.setAttribute('href', dataStr);
     downloadAnchor.setAttribute(
       'download',
-      `cinepulse-vault-${new Date().toISOString().split('T')[0]}.json`
+      `frame-vault-${new Date().toISOString().split('T')[0]}.json`
     );
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
@@ -316,8 +390,8 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const resetToDefaultWatchlist = () => {
-    setWatchlist(INITIAL_WATCHLIST_DATA);
-    showToast('Vault restored to default curated masterpieces', 'info');
+    setWatchlist([]);
+    showToast('Vault collection cleared', 'info');
   };
 
   // Compute stats
@@ -384,6 +458,12 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         isSettingsModalOpen,
         toasts,
         stats,
+        theme,
+        resolvedTheme,
+        toggleTheme,
+        setThemeMode,
+        region,
+        setRegion,
         openDetailModal,
         closeDetailModal,
         openAddModal,

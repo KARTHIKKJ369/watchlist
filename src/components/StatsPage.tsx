@@ -27,7 +27,7 @@ export const StatsPage: React.FC = () => {
       <div className="insights-left-col">
         {/* Editorial Personalization Note */}
         <div className="editorial-taste-block">
-          <span className="editorial-eyebrow">CINEPULSE TASTE PROFILE</span>
+          <span className="editorial-eyebrow">FRAME TASTE PROFILE</span>
           <h2 className="editorial-headline">
             {topGenre} & auteur cinema dominate your collection.
           </h2>

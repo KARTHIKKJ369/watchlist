@@ -3,12 +3,13 @@ import {
   Plus,
   Check,
 } from '@phosphor-icons/react';
-import type { OTTReleaseItem } from '../types';
+import type { OTTReleaseItem, WatchlistItem } from '../types';
 import { fetchPlatformReleases } from '../services/tmdbApi';
 import { useWatchlist } from '../context/WatchlistContext';
 
 export const ReleasesPage: React.FC = () => {
-  const { addToWatchlist, isInWatchlist } = useWatchlist();
+  const { addToWatchlist, isInWatchlist, openDetailModal, getWatchlistItem, region, openSettingsModal } =
+    useWatchlist();
 
   const [selectedPlatform, setSelectedPlatform] = useState<
     'all' | 'netflix' | 'prime' | 'disney' | 'apple' | 'max' | 'theaters'
@@ -26,7 +27,7 @@ export const ReleasesPage: React.FC = () => {
       .catch(() => {
         setIsLoading(false);
       });
-  }, [selectedPlatform]);
+  }, [selectedPlatform, region]);
 
   const platforms: {
     id: 'all' | 'netflix' | 'prime' | 'disney' | 'apple' | 'max' | 'theaters';
@@ -41,7 +42,8 @@ export const ReleasesPage: React.FC = () => {
     { id: 'theaters', label: 'Theaters' },
   ];
 
-  const handleAddRelease = async (item: OTTReleaseItem) => {
+  const handleAddRelease = async (item: OTTReleaseItem, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     await addToWatchlist({
       tmdbId: item.id,
       title: item.title,
@@ -54,6 +56,39 @@ export const ReleasesPage: React.FC = () => {
       overview: item.overview,
       voteAverage: item.voteAverage,
     });
+  };
+
+  const handleOpenReleaseDetails = (item: OTTReleaseItem) => {
+    const existing = getWatchlistItem(item.id, item.title);
+    if (existing) {
+      openDetailModal(existing);
+      return;
+    }
+
+    const previewItem: WatchlistItem = {
+      id: `tmdb-${item.id}`,
+      tmdbId: item.id,
+      title: item.title,
+      originalTitle: item.title,
+      mediaType: item.mediaType || 'movie',
+      posterPath: item.posterPath || '',
+      backdropPath: item.backdropPath || '',
+      releaseYear: item.releaseDate ? item.releaseDate.split('-')[0] : '2026',
+      releaseDate: item.releaseDate,
+      genres: item.genres || [],
+      overview: item.overview || 'No synopsis available.',
+      voteAverage: item.voteAverage || 0,
+      status: 'plan_to_watch',
+      userRating: 0,
+      userNotes: '',
+      rewatchCount: 0,
+      tags: [],
+      addedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      streamingProviders: item.platform ? [{ id: 0, name: item.platform, type: 'stream', logoPath: '' }] : [],
+    };
+
+    openDetailModal(previewItem);
   };
 
   const getPlatformBadge = (platformName: string) => {
@@ -79,19 +114,29 @@ export const ReleasesPage: React.FC = () => {
 
   return (
     <div className="releases-view">
-      {/* Platform Tabs (Typographic with Dividers, No Pills) */}
-      <div className="platform-tabs-strip">
-        {platforms.map((p, idx) => (
-          <React.Fragment key={p.id}>
-            <button
-              className={`platform-link ${selectedPlatform === p.id ? 'active' : ''}`}
-              onClick={() => setSelectedPlatform(p.id)}
-            >
-              {p.label}
-            </button>
-            {idx < platforms.length - 1 && <span className="tab-divider">|</span>}
-          </React.Fragment>
-        ))}
+      {/* Header Row with Platform Tabs & Regional Country Indicator */}
+      <div className="releases-header-bar">
+        <div className="platform-tabs-strip">
+          {platforms.map((p, idx) => (
+            <React.Fragment key={p.id}>
+              <button
+                className={`platform-link ${selectedPlatform === p.id ? 'active' : ''}`}
+                onClick={() => setSelectedPlatform(p.id)}
+              >
+                {p.label}
+              </button>
+              {idx < platforms.length - 1 && <span className="tab-divider">|</span>}
+            </React.Fragment>
+          ))}
+        </div>
+
+        <button
+          className="region-indicator-pill"
+          onClick={openSettingsModal}
+          title="Change Streaming Region in Settings"
+        >
+          <span>Region: {region}</span>
+        </button>
       </div>
 
       {/* Horizontal List of Releases */}
@@ -106,7 +151,12 @@ export const ReleasesPage: React.FC = () => {
           {releases.map((item) => {
             const added = isInWatchlist(item.id, item.title);
             return (
-              <div key={item.id} className="release-row">
+              <div
+                key={item.id}
+                className="release-row"
+                onClick={() => handleOpenReleaseDetails(item)}
+                title={`View ${item.title} details`}
+              >
                 {/* 60x90 Thumbnail */}
                 <div className="row-thumb">
                   {item.posterPath ? (
@@ -133,6 +183,9 @@ export const ReleasesPage: React.FC = () => {
                       </>
                     )}
                   </div>
+                  {item.overview && (
+                    <p className="row-synopsis-preview">{item.overview}</p>
+                  )}
                 </div>
 
                 {/* Rating */}
@@ -144,17 +197,17 @@ export const ReleasesPage: React.FC = () => {
                 )}
 
                 {/* Minimal + icon button */}
-                <div className="row-action">
+                <div className="row-action" onClick={(e) => e.stopPropagation()}>
                   {added ? (
-                    <button className="btn-release-added" disabled title="In Watchlist">
+                    <button className="btn-release-added" disabled title="In Collection">
                       <Check size={18} weight="bold" />
                     </button>
                   ) : (
                     <button
                       className="btn-release-add"
-                      onClick={() => handleAddRelease(item)}
-                      title="Add to Watchlist"
-                      aria-label="Add to Watchlist"
+                      onClick={(e) => handleAddRelease(item, e)}
+                      title="Add to Collection"
+                      aria-label="Add to Collection"
                     >
                       <Plus size={20} weight="regular" />
                     </button>
@@ -177,6 +230,14 @@ export const ReleasesPage: React.FC = () => {
           gap: 28px;
         }
 
+        .releases-header-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
         /* Plain text tabs with vertical dividers */
         .platform-tabs-strip {
           display: flex;
@@ -184,6 +245,26 @@ export const ReleasesPage: React.FC = () => {
           gap: 12px;
           overflow-x: auto;
           padding-bottom: 2px;
+        }
+
+        .region-indicator-pill {
+          font-family: var(--font-ui);
+          font-size: 0.6875rem;
+          font-weight: 600;
+          color: var(--ink-2);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          padding: 3px 8px;
+          border-radius: var(--radius-sm);
+          transition: all 150ms ease;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          cursor: pointer;
+        }
+
+        .region-indicator-pill:hover {
+          color: var(--accent);
+          border-color: var(--accent);
         }
 
         .platform-link {
@@ -231,18 +312,20 @@ export const ReleasesPage: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 16px;
-          padding: 12px 0;
+          padding: 14px 10px;
           border-bottom: 1px solid var(--border);
-          transition: background-color 150ms ease;
+          cursor: pointer;
+          border-radius: var(--radius-sm);
+          transition: background-color 150ms ease, transform 150ms ease;
         }
 
         .release-row:hover {
-          background: oklch(14% 0.012 265 / 0.5);
+          background: var(--surface);
         }
 
         .row-thumb {
-          width: 54px;
-          height: 80px;
+          width: 58px;
+          height: 86px;
           aspect-ratio: 2 / 3;
           flex-shrink: 0;
           background: var(--surface);
@@ -256,6 +339,11 @@ export const ReleasesPage: React.FC = () => {
           height: 100%;
           object-fit: cover;
           display: block;
+          transition: transform 200ms ease;
+        }
+
+        .release-row:hover .row-poster-img {
+          transform: scale(1.04);
         }
 
         .row-poster-fallback {
@@ -284,13 +372,24 @@ export const ReleasesPage: React.FC = () => {
 
         .row-title {
           font-family: var(--font-display);
-          font-size: 1.05rem;
+          font-size: 1.1rem;
           font-weight: 400;
           color: var(--ink);
           line-height: 1.2;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .row-synopsis-preview {
+          font-size: 0.8125rem;
+          color: var(--ink-2);
+          line-height: 1.4;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          margin-top: 2px;
         }
 
         .provider-tag {
@@ -348,7 +447,7 @@ export const ReleasesPage: React.FC = () => {
 
         .row-action {
           flex-shrink: 0;
-          padding-right: 8px;
+          padding-right: 4px;
         }
 
         .btn-release-add {
@@ -363,8 +462,7 @@ export const ReleasesPage: React.FC = () => {
         }
 
         .btn-release-added {
-          color: var(--ink-2);
-          opacity: 0.4;
+          color: var(--accent);
           padding: 8px;
         }
 

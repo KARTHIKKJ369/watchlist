@@ -6,6 +6,10 @@ export const StatsHeader: React.FC = () => {
 
   const hours = Math.round(stats.totalRuntimeMinutes / 60);
 
+  if (stats.totalCount === 0) {
+    return null; // The onboarding hero in WatchlistGrid carries the visual weight
+  }
+
   return (
     <div className="stats-header-minimal">
       <h1 className="stats-headline">

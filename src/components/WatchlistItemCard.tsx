@@ -26,7 +26,24 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
     }
   };
 
+  const getStreamBadge = (providerName: string) => {
+    const name = providerName.toLowerCase();
+    if (name.includes('netflix')) return 'Netflix';
+    if (name.includes('prime')) return 'Prime';
+    if (name.includes('disney')) return 'Disney+';
+    if (name.includes('apple')) return ' TV+';
+    if (name.includes('max') || name.includes('hbo')) return 'MAX';
+    if (name.includes('hulu')) return 'Hulu';
+    if (name.includes('paramount')) return 'Paramount+';
+    if (name.includes('peacock')) return 'Peacock';
+    return providerName;
+  };
+
   const ratingValue = item.userRating > 0 ? item.userRating : item.voteAverage;
+  const primaryStreamProvider =
+    item.streamingProviders && item.streamingProviders.length > 0
+      ? getStreamBadge(item.streamingProviders[0].name)
+      : null;
 
   return (
     <div
@@ -60,6 +77,13 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
             </div>
           )}
 
+          {/* Floating Stream Tag (Top-Right of Poster) */}
+          {primaryStreamProvider && (
+            <div className="poster-stream-anchor">
+              <span className="stream-badge-tag">{primaryStreamProvider}</span>
+            </div>
+          )}
+
           {/* Floating Status Indicator on Poster Bottom-Left */}
           <div className="poster-status-anchor">
             <span className={`status-type ${item.status}`}>
@@ -69,7 +93,7 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         </motion.div>
       </div>
 
-      {/* Caption: Title + Rating Row (Strongest), Year + Genre (Secondary) */}
+      {/* Caption: Title + Rating Row (Strongest), Year + Genre + Stream (Secondary) */}
       <div className="card-caption">
         <div className="caption-primary-row">
           <h3 className="card-title" title={item.title}>
@@ -89,6 +113,12 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
             <>
               <span className="meta-sep">·</span>
               <span className="meta-genre">{item.genres[0]}</span>
+            </>
+          )}
+          {primaryStreamProvider && (
+            <>
+              <span className="meta-sep">·</span>
+              <span className="meta-stream-label">{primaryStreamProvider}</span>
             </>
           )}
         </div>
@@ -185,6 +215,32 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
           line-height: 1.3;
         }
 
+        /* Top-Right Floating Stream Badge */
+        .poster-stream-anchor {
+          position: absolute;
+          top: 8px;
+          right: 8px;
+          z-index: 2;
+          background: oklch(10% 0.01 265 / 0.85);
+          backdrop-filter: blur(8px);
+          padding: 2px 6px;
+          border-radius: 2px;
+          border: 1px solid var(--border);
+        }
+
+        [data-theme="light"] .poster-stream-anchor {
+          background: oklch(98% 0.003 265 / 0.9);
+        }
+
+        .stream-badge-tag {
+          font-family: var(--font-ui);
+          font-size: 0.6875rem;
+          font-weight: 600;
+          color: var(--ink);
+          letter-spacing: 0.02em;
+        }
+
+        /* Bottom-Left Status Badge */
         .poster-status-anchor {
           position: absolute;
           bottom: 8px;
@@ -197,7 +253,11 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
           border: 1px solid var(--border);
         }
 
-        /* Caption Structure: Row 1 = Title + Rating; Row 2 = Year · Genre */
+        [data-theme="light"] .poster-status-anchor {
+          background: oklch(98% 0.003 265 / 0.9);
+        }
+
+        /* Caption Structure: Row 1 = Title + Rating; Row 2 = Year · Genre · Stream */
         .card-caption {
           padding-top: 10px;
           display: flex;
@@ -226,7 +286,7 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
         }
 
         .card-root:hover .card-title {
-          color: #ffffff;
+          color: var(--ink);
         }
 
         .card-rating-val {
@@ -250,6 +310,7 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
           display: flex;
           align-items: center;
           gap: 6px;
+          flex-wrap: wrap;
         }
 
         .meta-sep {
@@ -260,6 +321,11 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
+        }
+
+        .meta-stream-label {
+          color: var(--accent);
+          font-weight: 600;
         }
       `}</style>
     </div>

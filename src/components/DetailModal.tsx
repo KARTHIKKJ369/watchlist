@@ -5,13 +5,23 @@ import {
   Play,
   ArrowClockwise,
   Trash,
+  Plus,
+  PencilSimple,
+  Image as ImageIcon,
 } from '@phosphor-icons/react';
 import type { WatchStatus } from '../types';
 import { useWatchlist } from '../context/WatchlistContext';
 
 export const DetailModal: React.FC = () => {
-  const { selectedItem, closeDetailModal, updateWatchlistItem, removeFromWatchlist } =
-    useWatchlist();
+  const {
+    selectedItem,
+    closeDetailModal,
+    updateWatchlistItem,
+    removeFromWatchlist,
+    addToWatchlist,
+    isInWatchlist,
+    showToast,
+  } = useWatchlist();
 
   if (!selectedItem) return null;
 
@@ -24,6 +34,11 @@ export const DetailModal: React.FC = () => {
   const [newTag, setNewTag] = useState('');
   const [isRatingPickerOpen, setIsRatingPickerOpen] = useState(false);
   const [backdropFailed, setBackdropFailed] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const [showAllCast, setShowAllCast] = useState(false);
+  const [isEditingArtwork, setIsEditingArtwork] = useState(false);
+  const [customPosterInput, setCustomPosterInput] = useState(selectedItem.posterPath || '');
+  const [customBackdropInput, setCustomBackdropInput] = useState(selectedItem.backdropPath || '');
 
   useEffect(() => {
     setStatus(selectedItem.status);
@@ -34,6 +49,11 @@ export const DetailModal: React.FC = () => {
     setIsPlayingTrailer(false);
     setIsRatingPickerOpen(false);
     setBackdropFailed(false);
+    setIsConfirmingDelete(false);
+    setShowAllCast(false);
+    setIsEditingArtwork(false);
+    setCustomPosterInput(selectedItem.posterPath || '');
+    setCustomBackdropInput(selectedItem.backdropPath || '');
   }, [selectedItem]);
 
   useEffect(() => {
@@ -80,11 +100,71 @@ export const DetailModal: React.FC = () => {
     updateWatchlistItem(selectedItem.id, { tags: updated });
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Remove "${selectedItem.title}" from your collection?`)) {
-      removeFromWatchlist(selectedItem.id);
-      closeDetailModal();
+  const handleConfirmDelete = () => {
+    removeFromWatchlist(selectedItem.id);
+    closeDetailModal();
+  };
+
+  const isAlreadyInCollection = isInWatchlist(selectedItem.tmdbId, selectedItem.title);
+
+  const handleAddToCollection = async () => {
+    await addToWatchlist(
+      {
+        tmdbId: selectedItem.tmdbId,
+        title: selectedItem.title,
+        originalTitle: selectedItem.originalTitle,
+        mediaType: selectedItem.mediaType,
+        posterPath: selectedItem.posterPath,
+        backdropPath: selectedItem.backdropPath,
+        releaseYear: selectedItem.releaseYear,
+        releaseDate: selectedItem.releaseDate,
+        genres: selectedItem.genres,
+        overview: selectedItem.overview,
+        voteAverage: selectedItem.voteAverage,
+        director: selectedItem.director,
+        writers: selectedItem.writers,
+        cinematographer: selectedItem.cinematographer,
+        composer: selectedItem.composer,
+        productionCompanies: selectedItem.productionCompanies,
+        certification: selectedItem.certification,
+        tagline: selectedItem.tagline,
+        budget: selectedItem.budget,
+        revenue: selectedItem.revenue,
+        language: selectedItem.language,
+        runtime: selectedItem.runtime,
+        numberOfSeasons: selectedItem.numberOfSeasons,
+        numberOfEpisodes: selectedItem.numberOfEpisodes,
+        cast: selectedItem.cast,
+        streamingProviders: selectedItem.streamingProviders,
+        trailerKey: selectedItem.trailerKey,
+      },
+      status
+    );
+  };
+
+  const handleSaveArtwork = async () => {
+    const newPoster = customPosterInput.trim();
+    const newBackdrop = customBackdropInput.trim();
+
+    if (!isAlreadyInCollection) {
+      await addToWatchlist(
+        {
+          ...selectedItem,
+          posterPath: newPoster,
+          backdropPath: newBackdrop,
+        },
+        status
+      );
+    } else {
+      updateWatchlistItem(selectedItem.id, {
+        posterPath: newPoster,
+        backdropPath: newBackdrop,
+      });
     }
+
+    setIsEditingArtwork(false);
+    setBackdropFailed(false);
+    showToast('Artwork updated successfully', 'success');
   };
 
   const getInitials = (name: string) => {
@@ -141,9 +221,30 @@ export const DetailModal: React.FC = () => {
                   className="backdrop-hero fallback"
                 />
               ) : (
-                <div className="backdrop-empty" />
+                <div className="backdrop-empty-slate">
+                  <span className="empty-slate-title">{selectedItem.title}</span>
+                  <button
+                    className="btn-add-artwork-cta"
+                    onClick={() => setIsEditingArtwork(true)}
+                  >
+                    <Plus size={14} />
+                    <span>Add Custom Poster / Artwork</span>
+                  </button>
+                </div>
               )}
               <div className="backdrop-vignette" />
+
+              {/* Edit Artwork Quick Trigger */}
+              <button
+                className="btn-backdrop-edit-artwork"
+                onClick={() => setIsEditingArtwork(!isEditingArtwork)}
+                title="Edit poster or backdrop image URL"
+              >
+                <PencilSimple size={12} weight="bold" />
+                <span>
+                  {selectedItem.posterPath || selectedItem.backdropPath ? 'Edit Artwork' : 'Set Artwork'}
+                </span>
+              </button>
 
               {/* Title & Headline overlaid on Backdrop */}
               <div className="backdrop-caption">
@@ -182,6 +283,54 @@ export const DetailModal: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Custom Artwork Editor Card if active */}
+            {isEditingArtwork && (
+              <div className="artwork-editor-card">
+                <div className="artwork-editor-header">
+                  <div className="artwork-editor-title-group">
+                    <ImageIcon size={16} color="var(--accent)" />
+                    <span className="artwork-editor-title">Custom Poster & Backdrop Artwork</span>
+                  </div>
+                  <button className="btn-minimal" onClick={() => setIsEditingArtwork(false)}>
+                    <X size={14} />
+                  </button>
+                </div>
+                <p className="artwork-editor-desc">
+                  Paste any direct image URL (JPEG, PNG, WebP) to update or add missing artwork for this movie.
+                </p>
+                <div className="artwork-inputs-stack">
+                  <div className="artwork-input-group">
+                    <label className="artwork-input-label">Poster URL (2:3 aspect ratio)</label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/poster.jpg"
+                      value={customPosterInput}
+                      onChange={(e) => setCustomPosterInput(e.target.value)}
+                      className="artwork-text-input"
+                    />
+                  </div>
+                  <div className="artwork-input-group">
+                    <label className="artwork-input-label">Backdrop / Landscape URL (16:9 aspect ratio)</label>
+                    <input
+                      type="url"
+                      placeholder="https://example.com/backdrop.jpg"
+                      value={customBackdropInput}
+                      onChange={(e) => setCustomBackdropInput(e.target.value)}
+                      className="artwork-text-input"
+                    />
+                  </div>
+                </div>
+                <div className="artwork-editor-actions">
+                  <button className="btn-primary-artwork-save" onClick={handleSaveArtwork}>
+                    Save Artwork
+                  </button>
+                  <button className="btn-minimal" onClick={() => setIsEditingArtwork(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Trailer Embed if active */}
             {isPlayingTrailer && selectedItem.trailerKey && (
@@ -254,14 +403,14 @@ export const DetailModal: React.FC = () => {
                 </p>
               </div>
 
-              {/* Streaming Availability (Muted ink-2, secondary metadata) */}
+              {/* Streaming Availability */}
               {streamingText && (
                 <div className="detail-streaming-muted">
                   {streamingText}
                 </div>
               )}
 
-              {/* First-class Accent-Filled Trailer Button */}
+              {/* Accent-Filled Trailer Button */}
               {selectedItem.trailerKey && !isPlayingTrailer && (
                 <button
                   className="btn-accent-trailer"
@@ -272,10 +421,10 @@ export const DetailModal: React.FC = () => {
                 </button>
               )}
 
-              {/* Thin Horizontal Divider */}
+              {/* Section Divider */}
               <div className="section-divider" />
 
-              {/* Filmmakers & Key Crew (Tight label gap, wide credential pair gap) */}
+              {/* Filmmakers & Key Crew */}
               {(selectedItem.director ||
                 selectedItem.writers ||
                 selectedItem.cinematographer ||
@@ -325,12 +474,12 @@ export const DetailModal: React.FC = () => {
                 </div>
               )}
 
-              {/* Thin Horizontal Divider */}
+              {/* Section Divider */}
               {selectedItem.cast && selectedItem.cast.length > 0 && (
                 <div className="section-divider" />
               )}
 
-              {/* Cast & Characters (Strict 2-Column Grid to Prevent Truncation) */}
+              {/* Cast & Characters (Strict 2-Column Grid) */}
               {selectedItem.cast && selectedItem.cast.length > 0 && (
                 <div className="cast-section">
                   <div className="cast-header-row">
@@ -340,7 +489,7 @@ export const DetailModal: React.FC = () => {
                     </span>
                   </div>
                   <div className="cast-grid-2col">
-                    {selectedItem.cast.map((actor) => (
+                    {(showAllCast ? selectedItem.cast : selectedItem.cast.slice(0, 8)).map((actor) => (
                       <div key={actor.id} className="cast-card-row">
                         <div className="avatar-box">
                           {actor.profilePath ? (
@@ -361,6 +510,14 @@ export const DetailModal: React.FC = () => {
                       </div>
                     ))}
                   </div>
+                  {selectedItem.cast.length > 8 && (
+                    <button
+                      className="btn-minimal btn-toggle-cast"
+                      onClick={() => setShowAllCast(!showAllCast)}
+                    >
+                      {showAllCast ? 'Show fewer actors' : `+ View all ${selectedItem.cast.length} actors`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -368,30 +525,45 @@ export const DetailModal: React.FC = () => {
 
           {/* Right Column: Personal Log */}
           <div className="detail-col-log">
+            {/* Prominent Top Action: Add to Collection OR In-Vault Indicator */}
+            {!isAlreadyInCollection ? (
+              <div className="hero-add-collection-block">
+                <button className="btn-hero-add-collection" onClick={handleAddToCollection}>
+                  <Plus size={18} weight="bold" />
+                  <span>Add to Collection</span>
+                </button>
+              </div>
+            ) : (
+              <div className="in-vault-banner">
+                <span className="vault-indicator-dot">●</span>
+                <span className="vault-indicator-text">In Your Collection</span>
+              </div>
+            )}
+
             {/* Status Section */}
             <div className="log-section">
               <span className="log-label">Your Status</span>
               <div className="status-selector-row">
                 <button
-                  className={`status-type watching ${status === 'watching' ? 'active-select' : ''}`}
+                  className={`status-btn ${status === 'watching' ? 'active-select' : ''}`}
                   onClick={() => handleStatusChange('watching')}
                 >
                   Watching
                 </button>
                 <button
-                  className={`status-type queued ${status === 'plan_to_watch' ? 'active-select' : ''}`}
+                  className={`status-btn ${status === 'plan_to_watch' ? 'active-select' : ''}`}
                   onClick={() => handleStatusChange('plan_to_watch')}
                 >
                   Queued
                 </button>
                 <button
-                  className={`status-type completed ${status === 'completed' ? 'active-select' : ''}`}
+                  className={`status-btn ${status === 'completed' ? 'active-select' : ''}`}
                   onClick={() => handleStatusChange('completed')}
                 >
                   Completed
                 </button>
                 <button
-                  className={`status-type dropped ${status === 'dropped' ? 'active-select' : ''}`}
+                  className={`status-btn ${status === 'dropped' ? 'active-select' : ''}`}
                   onClick={() => handleStatusChange('dropped')}
                 >
                   Dropped
@@ -399,7 +571,7 @@ export const DetailModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Rating Section (Large 9 in DM Serif Display + /10) */}
+            {/* Rating Section */}
             <div className="log-section">
               <span className="log-label">Your Rating</span>
               <div
@@ -446,7 +618,7 @@ export const DetailModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Tags (Surface-2 chips, no color) */}
+            {/* Tags */}
             <div className="log-section">
               <span className="log-label">Tags</span>
               <div className="tags-container">
@@ -469,7 +641,7 @@ export const DetailModal: React.FC = () => {
               </div>
             </div>
 
-            {/* Notes (Plain textarea, no border, expands) */}
+            {/* Notes */}
             <div className="log-section">
               <span className="log-label">Notes</span>
               <textarea
@@ -482,13 +654,32 @@ export const DetailModal: React.FC = () => {
               />
             </div>
 
-            {/* Remove Action */}
-            <div className="log-footer">
-              <button className="btn-minimal delete-link" onClick={handleDelete}>
-                <Trash size={14} />
-                <span>Remove from collection</span>
-              </button>
-            </div>
+            {/* Actions: Remove with Inline Confirmation when in collection */}
+            {isAlreadyInCollection && (
+              <div className="log-footer">
+                {isConfirmingDelete ? (
+                  <div className="confirm-delete-box">
+                    <span className="confirm-delete-prompt">Remove from collection?</span>
+                    <div className="confirm-delete-actions">
+                      <button className="btn-danger-confirm" onClick={handleConfirmDelete}>
+                        Remove
+                      </button>
+                      <button
+                        className="btn-minimal btn-cancel-delete"
+                        onClick={() => setIsConfirmingDelete(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button className="btn-minimal delete-link" onClick={() => setIsConfirmingDelete(true)}>
+                    <Trash size={14} />
+                    <span>Remove from collection</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </motion.div>
@@ -511,21 +702,39 @@ export const DetailModal: React.FC = () => {
           top: 16px;
           right: 16px;
           z-index: 30;
-          color: var(--ink-2);
+          color: var(--ink);
           padding: 8px;
           border-radius: var(--radius-sm);
-          background: oklch(10% 0.01 265 / 0.6);
-          backdrop-filter: blur(8px);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 150ms ease;
+          box-shadow: 0 2px 8px oklch(0% 0 0 / 0.1);
         }
 
         .modal-close-trigger:hover {
-          color: var(--ink);
+          color: var(--accent);
+          border-color: var(--accent);
+          background: var(--surface-2);
+        }
+
+        @media (max-width: 768px) {
+          .modal-close-trigger {
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffffff;
+            border-color: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(8px);
+          }
         }
 
         .detail-layout {
           display: grid;
-          grid-template-columns: 62% 38%;
-          min-height: 600px;
+          grid-template-columns: 60% 40%;
+          min-height: 500px;
+          align-items: start;
         }
 
         @media (max-width: 768px) {
@@ -576,14 +785,175 @@ export const DetailModal: React.FC = () => {
           background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
         }
 
+        .btn-backdrop-edit-artwork {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          z-index: 10;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          background: rgba(0, 0, 0, 0.75);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: var(--radius-sm);
+          color: #ffffff;
+          font-family: var(--font-ui);
+          font-size: 0.6875rem;
+          font-weight: 500;
+          padding: 5px 10px;
+          cursor: pointer;
+          transition: all 150ms ease;
+        }
+
+        .btn-backdrop-edit-artwork:hover {
+          color: var(--accent);
+          border-color: var(--accent);
+          background: rgba(0, 0, 0, 0.9);
+        }
+
+        .backdrop-empty-slate {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+          background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%);
+          padding: 24px;
+          text-align: center;
+        }
+
+        .empty-slate-title {
+          font-family: var(--font-display);
+          font-size: 1.4rem;
+          color: var(--ink-2);
+          opacity: 0.5;
+        }
+
+        .btn-add-artwork-cta {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: var(--surface-2);
+          border: 1px dashed var(--accent);
+          color: var(--accent);
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 6px 14px;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: background 150ms ease;
+        }
+
+        .btn-add-artwork-cta:hover {
+          background: oklch(68% 0.18 30 / 0.15);
+        }
+
+        /* Artwork Editor Card */
+        .artwork-editor-card {
+          margin: 16px 24px 0 24px;
+          padding: 16px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          box-shadow: 0 8px 24px oklch(0% 0 0 / 0.3);
+        }
+
+        .artwork-editor-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .artwork-editor-title-group {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .artwork-editor-title {
+          font-family: var(--font-ui);
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: var(--ink);
+        }
+
+        .artwork-editor-desc {
+          font-size: 0.75rem;
+          color: var(--ink-2);
+          line-height: 1.4;
+        }
+
+        .artwork-inputs-stack {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+
+        .artwork-input-group {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .artwork-input-label {
+          font-size: 0.6875rem;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--ink-2);
+          font-weight: 600;
+        }
+
+        .artwork-text-input {
+          font-size: 0.8125rem;
+          height: 34px;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 0 10px;
+          color: var(--ink);
+        }
+
+        .artwork-text-input:focus {
+          border-color: var(--accent);
+        }
+
+        .artwork-editor-actions {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-top: 4px;
+        }
+
+        .btn-primary-artwork-save {
+          background: var(--accent);
+          color: var(--bg);
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 6px 14px;
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: filter 150ms ease;
+        }
+
+        .btn-primary-artwork-save:hover {
+          filter: brightness(1.1);
+        }
+
         .backdrop-vignette {
           position: absolute;
           inset: 0;
           background: linear-gradient(
             180deg,
-            oklch(10% 0.01 265 / 0.1) 0%,
-            oklch(10% 0.01 265 / 0.75) 60%,
-            var(--bg) 100%
+            rgba(0, 0, 0, 0.15) 0%,
+            rgba(0, 0, 0, 0.4) 40%,
+            rgba(0, 0, 0, 0.85) 85%,
+            rgba(0, 0, 0, 0.98) 100%
           );
         }
 
@@ -602,9 +972,10 @@ export const DetailModal: React.FC = () => {
           font-family: var(--font-display);
           font-size: 2.2rem;
           font-weight: 400;
-          color: var(--ink);
+          color: #ffffff;
           line-height: 1.15;
           letter-spacing: -0.02em;
+          text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
         }
 
         .detail-tagline {
@@ -612,27 +983,34 @@ export const DetailModal: React.FC = () => {
           font-size: 1.05rem;
           font-style: italic;
           color: var(--accent);
-          opacity: 0.95;
           line-height: 1.3;
+          text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
         }
 
         .detail-meta-line {
           font-family: var(--font-ui);
           font-size: 0.8125rem;
-          color: var(--ink-2);
+          color: rgba(255, 255, 255, 0.85);
           display: flex;
           align-items: center;
           gap: 8px;
           flex-wrap: wrap;
+          text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+        }
+
+        .meta-chip {
+          color: #ffffff;
+          font-weight: 600;
         }
 
         .meta-cert {
-          border: 1px solid var(--border);
-          padding: 0 4px;
+          border: 1px solid rgba(255, 255, 255, 0.4);
+          padding: 1px 6px;
           font-size: 0.6875rem;
           font-weight: 600;
-          border-radius: 2px;
-          color: var(--ink);
+          border-radius: var(--radius-sm);
+          color: #ffffff;
+          background: rgba(0, 0, 0, 0.35);
         }
 
         .discovery-body {
@@ -693,14 +1071,12 @@ export const DetailModal: React.FC = () => {
           line-height: 1.7;
         }
 
-        /* Muted Streaming Availability */
         .detail-streaming-muted {
           font-size: 0.8125rem;
           color: var(--ink-2);
           line-height: 1.5;
         }
 
-        /* First-Class Accent-Filled Trailer Button */
         .btn-accent-trailer {
           align-self: flex-start;
           background: var(--accent);
@@ -719,7 +1095,6 @@ export const DetailModal: React.FC = () => {
           filter: brightness(1.1);
         }
 
-        /* Thin Section Divider */
         .section-divider {
           height: 1px;
           background: var(--border);
@@ -755,7 +1130,7 @@ export const DetailModal: React.FC = () => {
           border: none;
         }
 
-        /* Crew Section (Consistent rhythm: 4px label-to-value, 24px/16px grid gap) */
+        /* Crew Section */
         .crew-section {
           display: flex;
           flex-direction: column;
@@ -799,7 +1174,7 @@ export const DetailModal: React.FC = () => {
           line-height: 1.35;
         }
 
-        /* Cast Section (Strict 2-Column Grid) */
+        /* Cast Section */
         .cast-section {
           display: flex;
           flex-direction: column;
@@ -899,13 +1274,37 @@ export const DetailModal: React.FC = () => {
           text-overflow: ellipsis;
         }
 
-        /* Right Column (Personal Log) */
+        .btn-toggle-cast {
+          align-self: flex-start;
+          font-size: 0.75rem;
+          color: var(--accent);
+          margin-top: 4px;
+          padding: 4px 0;
+          cursor: pointer;
+        }
+
+        .btn-toggle-cast:hover {
+          text-decoration: underline;
+        }
+
+        /* Right Column (Personal Log - Sticky with clearance for modal close button) */
         .detail-col-log {
-          padding: 24px;
+          padding: 58px 24px 24px 24px;
           display: flex;
           flex-direction: column;
-          gap: 22px;
+          gap: 20px;
           background: var(--bg);
+          position: sticky;
+          top: 0;
+          height: fit-content;
+          max-height: 90vh;
+          overflow-y: auto;
+        }
+
+        @media (max-width: 768px) {
+          .detail-col-log {
+            padding: 24px;
+          }
         }
 
         .log-section {
@@ -925,17 +1324,35 @@ export const DetailModal: React.FC = () => {
         .status-selector-row {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 8px;
           flex-wrap: wrap;
         }
 
-        .status-selector-row button {
+        .status-btn {
+          font-family: var(--font-ui);
+          font-size: 0.6875rem;
+          text-transform: uppercase;
+          font-weight: 600;
+          letter-spacing: 0.08em;
+          color: var(--ink-2);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          padding: 5px 10px;
+          border-radius: var(--radius-sm);
           cursor: pointer;
-          opacity: 0.5;
+          transition: all 150ms ease;
         }
 
-        .status-selector-row button.active-select {
-          opacity: 1;
+        .status-btn:hover {
+          color: var(--ink);
+          border-color: var(--ink-2);
+        }
+
+        .status-btn.active-select {
+          color: var(--accent);
+          background: var(--surface-2);
+          border-color: var(--accent);
+          font-weight: 700;
         }
 
         /* Large Rating */
@@ -1070,6 +1487,56 @@ export const DetailModal: React.FC = () => {
           border-top: 1px solid var(--border);
         }
 
+        .hero-add-collection-block {
+          padding-bottom: 4px;
+        }
+
+        .btn-hero-add-collection {
+          background: var(--accent);
+          color: #ffffff;
+          font-size: 0.875rem;
+          font-weight: 600;
+          padding: 10px 18px;
+          border-radius: var(--radius-sm);
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          width: 100%;
+          justify-content: center;
+          transition: filter 150ms ease, transform 150ms ease;
+          box-shadow: 0 4px 16px oklch(56% 0.2 30 / 0.25);
+        }
+
+        .btn-hero-add-collection:hover {
+          filter: brightness(1.1);
+          transform: translateY(-1px);
+        }
+
+        .in-vault-banner {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 10px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          align-self: flex-start;
+        }
+
+        .vault-indicator-dot {
+          color: var(--accent);
+          font-size: 0.6875rem;
+        }
+
+        .vault-indicator-text {
+          font-family: var(--font-ui);
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--ink);
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+        }
+
         .delete-link {
           color: var(--ink-2);
           font-size: 0.75rem;
@@ -1077,6 +1544,46 @@ export const DetailModal: React.FC = () => {
 
         .delete-link:hover {
           color: oklch(65% 0.2 25);
+        }
+
+        /* Inline Delete Confirmation */
+        .confirm-delete-box {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+          padding: 10px 12px;
+          background: var(--surface);
+          border: 1px solid oklch(65% 0.2 25 / 0.4);
+          border-radius: var(--radius-sm);
+        }
+
+        .confirm-delete-prompt {
+          font-size: 0.75rem;
+          color: var(--ink);
+          font-weight: 500;
+        }
+
+        .confirm-delete-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .btn-danger-confirm {
+          background: oklch(60% 0.22 25);
+          color: #ffffff;
+          font-size: 0.75rem;
+          font-weight: 600;
+          padding: 4px 10px;
+          border-radius: var(--radius-sm);
+        }
+
+        .btn-danger-confirm:hover {
+          background: oklch(55% 0.22 25);
+        }
+
+        .btn-cancel-delete {
+          font-size: 0.75rem;
         }
       `}</style>
     </div>

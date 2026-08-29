@@ -11,7 +11,8 @@ import { fetchTrending, searchMedia } from '../services/tmdbApi';
 import { useWatchlist } from '../context/WatchlistContext';
 
 export const AddMediaModal: React.FC = () => {
-  const { isAddModalOpen, closeAddModal, addToWatchlist, isInWatchlist } = useWatchlist();
+  const { isAddModalOpen, closeAddModal, addToWatchlist, isInWatchlist, openDetailModal, getWatchlistItem } =
+    useWatchlist();
 
   const [activeTab, setActiveTab] = useState<'search' | 'manual'>('search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -37,7 +38,7 @@ export const AddMediaModal: React.FC = () => {
 
   useEffect(() => {
     if (isAddModalOpen) {
-      fetchTrending('week').then((items) => setTrendingList(items.slice(0, 8)));
+      fetchTrending('week').then((items: MediaSearchResult[]) => setTrendingList(items.slice(0, 8)));
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
@@ -79,7 +80,8 @@ export const AddMediaModal: React.FC = () => {
 
   if (!isAddModalOpen) return null;
 
-  const handleAddSearchResult = async (item: MediaSearchResult) => {
+  const handleAddSearchResult = async (item: MediaSearchResult, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
     await addToWatchlist(
       {
         tmdbId: item.id,
@@ -97,6 +99,36 @@ export const AddMediaModal: React.FC = () => {
       },
       selectedAddStatus
     );
+  };
+
+  const handleOpenSearchResultDetail = (item: MediaSearchResult) => {
+    closeAddModal();
+    const existing = getWatchlistItem(item.id, item.title);
+    if (existing) {
+      openDetailModal(existing);
+    } else {
+      const previewItem: any = {
+        id: `search_preview_${item.id || Date.now()}`,
+        tmdbId: item.id,
+        title: item.title,
+        originalTitle: item.originalTitle,
+        mediaType: item.mediaType,
+        releaseYear: item.releaseYear || (item.releaseDate ? item.releaseDate.split('-')[0] : ''),
+        releaseDate: item.releaseDate,
+        posterPath: item.posterPath || '',
+        backdropPath: item.backdropPath || '',
+        genres: item.genres || [],
+        overview: item.overview,
+        voteAverage: item.voteAverage,
+        voteCount: item.voteCount,
+        status: selectedAddStatus,
+        addedAt: new Date().toISOString(),
+        userRating: 0,
+        rewatchCount: 0,
+        isCustom: false,
+      };
+      openDetailModal(previewItem);
+    }
   };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -206,7 +238,12 @@ export const AddMediaModal: React.FC = () => {
                     {searchResults.map((item) => {
                       const alreadyAdded = isInWatchlist(item.id, item.title);
                       return (
-                        <div key={item.id} className="search-item-row">
+                        <div
+                          key={item.id}
+                          className="search-item-row"
+                          onClick={() => handleOpenSearchResultDetail(item)}
+                          title={`View ${item.title} details`}
+                        >
                           <div className="search-item-thumb">
                             {item.posterPath ? (
                               <img src={item.posterPath} alt={item.title} />
@@ -232,7 +269,7 @@ export const AddMediaModal: React.FC = () => {
                               <span className="rating-suffix">/10</span>
                             </div>
                           )}
-                          <div className="search-item-action">
+                          <div className="search-item-action" onClick={(e) => e.stopPropagation()}>
                             {alreadyAdded ? (
                               <span className="added-tag">
                                 <Check size={14} />
@@ -240,7 +277,8 @@ export const AddMediaModal: React.FC = () => {
                             ) : (
                               <button
                                 className="btn-outline btn-quick-add"
-                                onClick={() => handleAddSearchResult(item)}
+                                onClick={(e) => handleAddSearchResult(item, e)}
+                                title="Add to collection"
                               >
                                 <Plus size={14} />
                                 <span>Add</span>
@@ -261,7 +299,12 @@ export const AddMediaModal: React.FC = () => {
                     {trendingList.map((item) => {
                       const alreadyAdded = isInWatchlist(item.id, item.title);
                       return (
-                        <div key={item.id} className="search-item-row">
+                        <div
+                          key={item.id}
+                          className="search-item-row"
+                          onClick={() => handleOpenSearchResultDetail(item)}
+                          title={`View ${item.title} details`}
+                        >
                           <div className="search-item-thumb">
                             {item.posterPath ? (
                               <img src={item.posterPath} alt={item.title} />
@@ -287,7 +330,7 @@ export const AddMediaModal: React.FC = () => {
                               <span className="rating-suffix">/10</span>
                             </div>
                           )}
-                          <div className="search-item-action">
+                          <div className="search-item-action" onClick={(e) => e.stopPropagation()}>
                             {alreadyAdded ? (
                               <span className="added-tag">
                                 <Check size={14} />
@@ -295,7 +338,8 @@ export const AddMediaModal: React.FC = () => {
                             ) : (
                               <button
                                 className="btn-outline btn-quick-add"
-                                onClick={() => handleAddSearchResult(item)}
+                                onClick={(e) => handleAddSearchResult(item, e)}
+                                title="Add to collection"
                               >
                                 <Plus size={14} />
                                 <span>Add</span>
@@ -591,8 +635,15 @@ export const AddMediaModal: React.FC = () => {
           display: flex;
           align-items: center;
           gap: 12px;
-          padding: 10px 0;
+          padding: 8px 8px;
           border-bottom: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: background 150ms ease;
+        }
+
+        .search-item-row:hover {
+          background: var(--surface);
         }
 
         .search-item-thumb {

@@ -5,7 +5,10 @@ import {
   ChartBar,
   Plus,
   Gear,
+  Sun,
+  Moon,
 } from '@phosphor-icons/react';
+import { FrameLogo } from './FrameLogo';
 import { useWatchlist } from '../context/WatchlistContext';
 
 export const Navbar: React.FC = () => {
@@ -14,6 +17,8 @@ export const Navbar: React.FC = () => {
     setActiveTab,
     openAddModal,
     openSettingsModal,
+    resolvedTheme,
+    toggleTheme,
   } = useWatchlist();
 
   return (
@@ -23,7 +28,8 @@ export const Navbar: React.FC = () => {
         <div className="navbar-inner">
           {/* Brand Logotype */}
           <div className="navbar-brand" onClick={() => setActiveTab('watchlist')}>
-            <span className="brand-logotype">CINEPULSE</span>
+            <FrameLogo size={22} className="brand-icon" />
+            <span className="brand-logotype">FRAME</span>
           </div>
 
           {/* Desktop Navigation Links */}
@@ -52,6 +58,20 @@ export const Navbar: React.FC = () => {
 
           {/* Actions */}
           <div className="navbar-actions">
+            {/* Theme Toggle Button */}
+            <button
+              className="btn-icon-action"
+              onClick={toggleTheme}
+              title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+              aria-label="Toggle theme"
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun size={18} weight="regular" />
+              ) : (
+                <Moon size={18} weight="regular" />
+              )}
+            </button>
+
             <button
               className="btn-primary-add"
               onClick={() => openAddModal()}
@@ -61,10 +81,10 @@ export const Navbar: React.FC = () => {
             </button>
 
             <button
-              className="btn-gear"
+              className="btn-icon-action"
               onClick={openSettingsModal}
-              title="Settings"
-              aria-label="Settings"
+              title="Account & Vault"
+              aria-label="Account Settings"
             >
               <Gear size={18} weight="regular" />
             </button>
@@ -72,7 +92,7 @@ export const Navbar: React.FC = () => {
         </div>
       </header>
 
-      {/* Mobile Bottom Navigation Bar (3 icons only, no labels, no pills) */}
+      {/* Mobile Bottom Navigation Bar (3 tab icons + theme toggle) */}
       <nav className="mobile-nav">
         <button
           className={`mobile-icon-btn ${activeTab === 'watchlist' ? 'active' : ''}`}
@@ -97,6 +117,7 @@ export const Navbar: React.FC = () => {
         >
           <ChartBar size={22} weight={activeTab === 'stats' ? 'fill' : 'regular'} />
         </button>
+
       </nav>
 
       <style>{`
@@ -107,6 +128,7 @@ export const Navbar: React.FC = () => {
           background: var(--bg);
           border-bottom: 1px solid var(--border);
           height: var(--header-height);
+          transition: background-color 200ms ease, border-color 200ms ease;
         }
 
         .navbar-inner {
@@ -122,13 +144,21 @@ export const Navbar: React.FC = () => {
         .navbar-brand {
           cursor: pointer;
           user-select: none;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .brand-icon {
+          flex-shrink: 0;
         }
 
         .brand-logotype {
           font-family: var(--font-display);
-          font-size: 1.15rem;
+          font-size: 1.25rem;
           color: var(--ink);
-          letter-spacing: 0.04em;
+          letter-spacing: 0.08em;
+          font-weight: 400;
         }
 
         .navbar-links {
@@ -174,10 +204,21 @@ export const Navbar: React.FC = () => {
         .navbar-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
         }
 
-        /* Prominent primary product action */
+        .btn-icon-action {
+          color: var(--ink-2);
+          padding: 7px;
+          border-radius: var(--radius-sm);
+          transition: color 150ms ease, background-color 150ms ease;
+        }
+
+        .btn-icon-action:hover {
+          color: var(--ink);
+          background: var(--surface);
+        }
+
         .btn-primary-add {
           background: oklch(68% 0.18 30 / 0.12);
           border: 1px solid var(--accent);
@@ -192,18 +233,13 @@ export const Navbar: React.FC = () => {
           transition: all 150ms ease;
         }
 
+        [data-theme="light"] .btn-primary-add {
+          background: oklch(56% 0.19 35 / 0.1);
+        }
+
         .btn-primary-add:hover {
           background: var(--accent);
           color: var(--bg);
-        }
-
-        .btn-gear {
-          color: var(--ink-2);
-          padding: 6px;
-        }
-
-        .btn-gear:hover {
-          color: var(--ink);
         }
 
         /* Mobile Bottom Nav */
@@ -220,6 +256,7 @@ export const Navbar: React.FC = () => {
           padding: 0 16px;
           justify-content: space-around;
           align-items: center;
+          transition: background-color 200ms ease, border-color 200ms ease;
         }
 
         @media (max-width: 768px) {

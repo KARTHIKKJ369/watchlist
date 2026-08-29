@@ -159,9 +159,10 @@ export default {
       });
     }
 
-    const url = new URL(request.url);
-    const path = url.pathname;
-    const secret = env.JWT_SECRET || 'FRAME_CINEMA_APP_2026';
+    try {
+      const url = new URL(request.url);
+      const path = url.pathname;
+      const secret = env.JWT_SECRET || 'FRAME_CINEMA_APP_2026';
     const db: D1Database | undefined =
       env.DB ||
       env.frame_db ||
@@ -389,6 +390,9 @@ export default {
       }
     }
 
-    return jsonResponse({ error: 'Endpoint not found' }, 404);
+      return jsonResponse({ error: 'Endpoint not found' }, 404);
+    } catch (err: any) {
+      return jsonResponse({ error: err?.message || 'Internal Worker Error' }, 500);
+    }
   },
 };

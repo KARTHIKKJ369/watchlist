@@ -15,8 +15,6 @@ import {
   logoutCloudUser,
   syncWatchlistToCloud,
   fetchWatchlistFromCloud,
-  getWorkerApiUrl,
-  setWorkerApiUrl,
 } from '../services/cloudSync';
 import { useWatchlist } from '../context/WatchlistContext';
 
@@ -49,13 +47,11 @@ export const SettingsModal: React.FC = () => {
   } = useWatchlist();
 
   // Cloud Account State
-  const [cloudUser, setCloudUser] = useState<{ id: string; username: string; isLocal?: boolean } | null>(null);
+  const [cloudUser, setCloudUser] = useState<{ id: string; username: string } | null>(null);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [selectedRegionInput, setSelectedRegionInput] = useState(region);
-  const [workerUrlInput, setWorkerUrlInput] = useState('');
-  const [showAdvancedWorker, setShowAdvancedWorker] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
 
@@ -63,7 +59,6 @@ export const SettingsModal: React.FC = () => {
     if (isSettingsModalOpen) {
       setCloudUser(getAuthUser());
       setSelectedRegionInput(region);
-      setWorkerUrlInput(getWorkerApiUrl());
     }
   }, [isSettingsModalOpen, region]);
 
@@ -94,8 +89,7 @@ export const SettingsModal: React.FC = () => {
       setCloudUser(res.user);
       setUsernameInput('');
       setPasswordInput('');
-      const modeLabel = res.user.isLocal ? ' (Local Vault Mode)' : ' (Cloud Sync Active)';
-      showToast(`Welcome back, @${res.user.username}${modeLabel}`, 'success');
+      showToast(`Welcome back, @${res.user.username}`, 'success');
       // Auto-sync current watchlist
       syncWatchlistToCloud(watchlist);
     } else {
@@ -279,31 +273,6 @@ export const SettingsModal: React.FC = () => {
                     ? 'Sign In & Sync'
                     : 'Create Account'}
                 </button>
-
-                <div className="worker-url-section">
-                  <button
-                    type="button"
-                    className="btn-minimal worker-toggle-btn"
-                    onClick={() => setShowAdvancedWorker(!showAdvancedWorker)}
-                  >
-                    <span>{showAdvancedWorker ? '▲ Hide Cloudflare Worker URL' : '▼ Custom Cloudflare Worker URL (Optional)'}</span>
-                  </button>
-                  {showAdvancedWorker && (
-                    <div className="worker-input-wrap">
-                      <input
-                        type="url"
-                        placeholder="https://frame-api.your-account.workers.dev"
-                        value={workerUrlInput}
-                        onChange={(e) => {
-                          setWorkerUrlInput(e.target.value);
-                          setWorkerApiUrl(e.target.value);
-                        }}
-                        className="api-input"
-                      />
-                      <span className="worker-hint">Leave blank to use local offline vault mode.</span>
-                    </div>
-                  )}
-                </div>
               </form>
             )}
           </div>
@@ -565,38 +534,6 @@ export const SettingsModal: React.FC = () => {
 
         .btn-primary-auth:hover {
           filter: brightness(1.1);
-        }
-
-        .worker-url-section {
-          margin-top: 4px;
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-
-        .worker-toggle-btn {
-          font-size: 0.6875rem;
-          color: var(--ink-2);
-          padding: 2px 0;
-          justify-content: flex-start;
-          opacity: 0.8;
-        }
-
-        .worker-toggle-btn:hover {
-          color: var(--accent);
-          opacity: 1;
-        }
-
-        .worker-input-wrap {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-        }
-
-        .worker-hint {
-          font-size: 0.6875rem;
-          color: var(--ink-2);
-          opacity: 0.7;
         }
 
         .backup-row {

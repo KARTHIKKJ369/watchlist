@@ -21,7 +21,7 @@
 
 ## Overview
 
-**FRAME** is a high-performance cinema logging and tracking system designed for film enthusiasts. Built with a responsive, editorial design system, FRAME combines deep movie/TV metadata from TMDB, live regional OTT release tracking, watch statistics, and real-time cloud vault synchronization into a single unified web and native Android application.
+**FRAME** is a high-performance cinema logging and tracking system designed for film enthusiasts. Built with a minimalist, Swiss Industrial design system inspired by Braun and Teenage Engineering, FRAME combines deep movie/TV metadata from TMDB, live regional OTT release tracking, watch statistics, and real-time cloud vault synchronization into a unified web and native Android application.
 
 ---
 
@@ -34,20 +34,20 @@
 - **JSON Import / Export**: Full data ownership with one-click JSON backup and migration.
 
 ### Streaming & Digital Release Radar
-- **Live Regional Availability**: Real-time streaming provider availability (Netflix, Prime Video, Disney+ Hotstar, Apple TV+, MUBI, and more) filtered by your country.
-- **Digital Release Calendar**: Track upcoming digital premieres and OTT release dates in a dedicated release radar.
+- **Live Regional Availability**: Real-time streaming provider availability (Netflix, Prime Video, Disney+, Apple TV+, MAX, and more) filtered by your country.
+- **Zero-Scroll Platform Matrix**: Responsive platform selector that fits all services on mobile without horizontal scrolling.
 
 ### Deep Cinephile Metadata
 - **Automated Enrichment**: Live TMDB synchronization for directors, cinematographers, composers, writers, full cast, synopsis, runtime, age certifications, box office revenue, and production companies.
 - **Integrated Video Player**: Stream official trailers directly inside the detail sheet.
 
 ### Insights & Analytics
-- **Viewing Statistics**: Automated breakdown of total runtime watched, average user rating, movie vs. TV split, and top 5 genre distribution charts.
+- **Viewing Statistics**: Automated breakdown of total runtime watched, average user rating, movie vs. TV split, and era distribution charts.
 
 ### Native Android Experience
 - **Edge-to-Edge Design**: Full support for Android notches, camera cutouts, and gesture navigation bars.
 - **Hardware Back Button Handling**: Hierarchical back navigation (dismisses active modals first, then returns to the home tab, then minimizes the app).
-- **Native Haptics & Theming**: Tactile vibration feedback on interactions and dynamic status bar color coordination matching both dark (`#0a0a0c`) and editorial light (`#f6f5f2`) themes.
+- **Native Haptics & Theming**: Tactile vibration feedback on interactions and dynamic status bar color coordination matching both OLED dark (`#000000`) and technical light (`#f5f5f1`) themes.
 - **Lightweight Footprint**: Optimized native APK footprint under 5 MB.
 
 ### Hybrid Cloud Sync & Offline-First
@@ -60,7 +60,7 @@
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend Web** | React 19, TypeScript, Vite 8, Framer Motion, Phosphor Icons, Lucide Icons, Vanilla OKLCH CSS |
+| **Frontend Web** | React 19, TypeScript, Vite 8, Framer Motion, Space Grotesk, Space Mono, Phosphor Icons, Vanilla CSS |
 | **Mobile Runtime** | Capacitor 8 (`@capacitor/android`, `@capacitor/app`, `@capacitor/status-bar`, `@capacitor/haptics`, `@capacitor/splash-screen`) |
 | **Backend & Storage** | Cloudflare Workers, Cloudflare D1 (SQLite Edge Database), Wrangler CLI |
 | **Data Provider** | The Movie Database (TMDB) API v3 / v4 |

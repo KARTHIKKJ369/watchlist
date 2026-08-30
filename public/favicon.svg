@@ -1,9 +1,19 @@
-<svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="24" height="24" rx="5" fill="#0d0f14"/>
-  <rect x="3" y="3" width="18" height="18" rx="2" stroke="#c89b4a" stroke-width="1.75"/>
-  <rect x="7" y="7" width="10" height="10" rx="1" stroke="#c89b4a" stroke-width="1.5" stroke-opacity="0.85"/>
-  <line x1="3" y1="3" x2="7" y2="7" stroke="#c89b4a" stroke-width="1.2"/>
-  <line x1="21" y1="3" x2="17" y2="7" stroke="#c89b4a" stroke-width="1.2"/>
-  <line x1="3" y1="21" x2="7" y2="17" stroke="#c89b4a" stroke-width="1.2"/>
-  <line x1="21" y1="21" x2="17" y2="17" stroke="#c89b4a" stroke-width="1.2"/>
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- OLED Black Canvas -->
+  <rect width="32" height="32" rx="7" fill="#000000"/>
+  
+  <!-- Outer Viewfinder Corner Brackets -->
+  <path d="M6 11V6H11" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="square"/>
+  <path d="M26 11V6H21" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="square"/>
+  <path d="M6 21V26H11" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="square"/>
+  <path d="M26 21V26H21" stroke="#FFFFFF" stroke-width="1.75" stroke-linecap="square"/>
+  
+  <!-- Frame Crosshairs Lines -->
+  <line x1="16" y1="5" x2="16" y2="7.5" stroke="#FFFFFF" stroke-width="1.25" stroke-opacity="0.8"/>
+  <line x1="16" y1="24.5" x2="16" y2="27" stroke="#FFFFFF" stroke-width="1.25" stroke-opacity="0.8"/>
+  <line x1="5" y1="16" x2="7.5" y2="16" stroke="#FFFFFF" stroke-width="1.25" stroke-opacity="0.8"/>
+  <line x1="24.5" y1="16" x2="27" y2="16" stroke="#FFFFFF" stroke-width="1.25" stroke-opacity="0.8"/>
+  
+  <!-- Center Red Recording Pip -->
+  <circle cx="16" cy="16" r="4.5" fill="#D71921"/>
 </svg>

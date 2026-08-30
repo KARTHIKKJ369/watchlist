@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react';
 import {
   Plus,
   Check,
+  GlobeHemisphereWest,
+  FilmSlate,
 } from '@phosphor-icons/react';
 import type { OTTReleaseItem, WatchlistItem } from '../types';
 import { fetchPlatformReleases } from '../services/tmdbApi';
 import { useWatchlist } from '../context/WatchlistContext';
+import { triggerHaptic } from '../services/nativeService';
 
 export const ReleasesPage: React.FC = () => {
   const { addToWatchlist, isInWatchlist, openDetailModal, getWatchlistItem, region, openSettingsModal } =
@@ -33,17 +36,18 @@ export const ReleasesPage: React.FC = () => {
     id: 'all' | 'netflix' | 'prime' | 'disney' | 'apple' | 'max' | 'theaters';
     label: string;
   }[] = [
-    { id: 'all', label: 'All' },
-    { id: 'netflix', label: 'Netflix' },
-    { id: 'prime', label: 'Prime' },
-    { id: 'disney', label: 'Disney+' },
-    { id: 'apple', label: 'Apple TV+' },
-    { id: 'max', label: 'HBO Max' },
-    { id: 'theaters', label: 'Theaters' },
+    { id: 'all', label: 'ALL' },
+    { id: 'netflix', label: 'NETFLIX' },
+    { id: 'prime', label: 'PRIME' },
+    { id: 'disney', label: 'DISNEY+' },
+    { id: 'apple', label: 'APPLE TV+' },
+    { id: 'max', label: 'MAX' },
+    { id: 'theaters', label: 'THEATERS' },
   ];
 
   const handleAddRelease = async (item: OTTReleaseItem, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    triggerHaptic('success');
     await addToWatchlist({
       tmdbId: item.id,
       title: item.title,
@@ -59,6 +63,7 @@ export const ReleasesPage: React.FC = () => {
   };
 
   const handleOpenReleaseDetails = (item: OTTReleaseItem) => {
+    triggerHaptic('selection');
     const existing = getWatchlistItem(item.id, item.title);
     if (existing) {
       openDetailModal(existing);
@@ -91,384 +96,500 @@ export const ReleasesPage: React.FC = () => {
     openDetailModal(previewItem);
   };
 
-  const getPlatformBadge = (platformName: string) => {
-    switch (platformName.toLowerCase()) {
-      case 'netflix':
-        return <span className="provider-tag netflix">N</span>;
-      case 'prime video':
-      case 'prime':
-        return <span className="provider-tag prime">Prime</span>;
-      case 'disney+':
-      case 'disney':
-        return <span className="provider-tag disney">Disney+</span>;
-      case 'apple tv+':
-      case 'apple':
-        return <span className="provider-tag apple"> TV+</span>;
-      case 'hbo max':
-      case 'max':
-        return <span className="provider-tag max">MAX</span>;
-      default:
-        return <span className="provider-tag default">{platformName}</span>;
-    }
-  };
-
   return (
-    <div className="releases-view">
-      {/* Header Row with Platform Tabs & Regional Country Indicator */}
-      <div className="releases-header-bar">
-        <div className="platform-tabs-strip">
-          {platforms.map((p, idx) => (
-            <React.Fragment key={p.id}>
-              <button
-                className={`platform-link ${selectedPlatform === p.id ? 'active' : ''}`}
-                onClick={() => setSelectedPlatform(p.id)}
-              >
-                {p.label}
-              </button>
-              {idx < platforms.length - 1 && <span className="tab-divider">|</span>}
-            </React.Fragment>
-          ))}
+    <div className="releases-view-nothing">
+      {/* Nothing Technical Header */}
+      <div className="releases-header-bar-nothing">
+        <div className="releases-top-meta-nothing">
+          <div className="releases-title-badge">
+            <span className="live-rec-dot" />
+            <span className="releases-title-text">OTT RELEASES // {region}</span>
+          </div>
+          <button
+            className="region-btn-nothing"
+            onClick={() => {
+              triggerHaptic('light');
+              openSettingsModal();
+            }}
+            title="Change Streaming Region"
+          >
+            <GlobeHemisphereWest size={13} weight="bold" />
+            <span>REGION: {region}</span>
+          </button>
         </div>
 
-        <button
-          className="region-indicator-pill"
-          onClick={openSettingsModal}
-          title="Change Streaming Region in Settings"
-        >
-          <span>Region: {region}</span>
-        </button>
+        {/* Platform Matrix Segmented Control */}
+        <div className="platform-matrix-nothing">
+          {platforms.map((p) => {
+            const isActive = selectedPlatform === p.id;
+            return (
+              <button
+                key={p.id}
+                className={`platform-btn-nothing ${isActive ? 'is-active' : ''}`}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setSelectedPlatform(p.id);
+                }}
+              >
+                {isActive && <span className="tab-active-dot" />}
+                <span>{p.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Horizontal List of Releases */}
+      {/* Release Cards in Technical List Layout */}
       {isLoading ? (
-        <div className="releases-list">
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <div key={n} className="release-row-skeleton" />
+        <div className="releases-list-nothing">
+          {[1, 2, 3, 4, 5].map((n) => (
+            <div key={n} className="release-skeleton-nothing">
+              <span className="skeleton-label">[LOADING RELEASES...]</span>
+            </div>
           ))}
         </div>
       ) : releases.length > 0 ? (
-        <div className="releases-list">
+        <div className="releases-list-nothing">
           {releases.map((item) => {
             const added = isInWatchlist(item.id, item.title);
             return (
               <div
                 key={item.id}
-                className="release-row"
+                className="release-card-nothing"
                 onClick={() => handleOpenReleaseDetails(item)}
-                title={`View ${item.title} details`}
               >
-                {/* 60x90 Thumbnail */}
-                <div className="row-thumb">
+                {/* 2:3 Thumbnail */}
+                <div className="card-thumb-nothing">
                   {item.posterPath ? (
-                    <img src={item.posterPath} alt={item.title} className="row-poster-img" loading="lazy" />
+                    <img
+                      src={item.posterPath}
+                      alt={item.title}
+                      className="card-poster-img-nothing"
+                      loading="lazy"
+                    />
                   ) : (
-                    <div className="row-poster-fallback">
-                      <span>{item.title[0]}</span>
+                    <div className="card-poster-fallback-nothing">
+                      <FilmSlate size={18} color="var(--ink-3)" />
                     </div>
                   )}
                 </div>
 
                 {/* Info */}
-                <div className="row-info">
-                  <div className="row-title-line">
-                    <h4 className="row-title">{item.title}</h4>
-                    {item.platform && getPlatformBadge(item.platform)}
+                <div className="card-info-nothing">
+                  <div className="card-title-row-nothing">
+                    <h4 className="card-title-nothing" title={item.title}>
+                      {item.title}
+                    </h4>
+                    {item.platform && (
+                      <span className="provider-tag-nothing">
+                        {item.platform.toUpperCase()}
+                      </span>
+                    )}
                   </div>
-                  <div className="row-meta">
-                    <span>{item.releaseDate ? item.releaseDate.split('-')[0] : '2026'}</span>
+
+                  <div className="card-meta-nothing">
+                    <span className="meta-year-span">
+                      {item.releaseDate ? item.releaseDate.split('-')[0] : '2026'}
+                    </span>
                     {item.genres?.length > 0 && (
                       <>
-                        <span className="row-sep">·</span>
-                        <span>{item.genres.slice(0, 2).join(', ')}</span>
+                        <span className="meta-sep">//</span>
+                        <span className="meta-genres-span" title={item.genres.join(', ')}>
+                          {item.genres.slice(0, 2).map((g) => g.trim()).join(' · ').toUpperCase()}
+                        </span>
                       </>
                     )}
                   </div>
+
                   {item.overview && (
-                    <p className="row-synopsis-preview">{item.overview}</p>
+                    <p className="card-overview-nothing">{item.overview}</p>
                   )}
                 </div>
 
-                {/* Rating */}
-                {item.voteAverage > 0 && (
-                  <div className="rating-num row-rating">
-                    {item.voteAverage}
-                    <span className="rating-suffix">/10</span>
-                  </div>
-                )}
-
-                {/* Minimal + icon button */}
-                <div className="row-action" onClick={(e) => e.stopPropagation()}>
-                  {added ? (
-                    <button className="btn-release-added" disabled title="In Collection">
-                      <Check size={18} weight="bold" />
-                    </button>
-                  ) : (
-                    <button
-                      className="btn-release-add"
-                      onClick={(e) => handleAddRelease(item, e)}
-                      title="Add to Collection"
-                      aria-label="Add to Collection"
-                    >
-                      <Plus size={20} weight="regular" />
-                    </button>
+                {/* Right Group: Score + Action Button */}
+                <div className="card-right-group-nothing">
+                  {item.voteAverage > 0 && (
+                    <div className="card-score-nothing">
+                      <span className="score-val">{item.voteAverage}</span>
+                      <span className="score-denom">/10</span>
+                    </div>
                   )}
+
+                  <div className="card-action-nothing" onClick={(e) => e.stopPropagation()}>
+                    {added ? (
+                      <button className="btn-add-tech is-added" disabled title="Already in Vault">
+                        <Check size={13} weight="bold" />
+                        <span>IN VAULT</span>
+                      </button>
+                    ) : (
+                      <button
+                        className="btn-add-tech"
+                        onClick={(e) => handleAddRelease(item, e)}
+                        title="Add to Vault"
+                        aria-label="Add to Vault"
+                      >
+                        <Plus size={13} weight="bold" />
+                        <span>ADD</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="empty-state-minimal">
-          <p className="empty-title">No releases available for this platform.</p>
+        <div className="empty-state-nothing">
+          <p className="empty-title-nothing">// NO RELEASES FOUND</p>
+          <p className="empty-desc-nothing">TRY SELECTING A DIFFERENT PLATFORM OR REGION.</p>
         </div>
       )}
 
       <style>{`
-        .releases-view {
+        .releases-view-nothing {
           display: flex;
           flex-direction: column;
-          gap: 28px;
+          gap: 16px;
+          margin-bottom: 32px;
         }
 
-        .releases-header-bar {
+        .releases-header-bar-nothing {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .releases-top-meta-nothing {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
-          flex-wrap: wrap;
+          width: 100%;
         }
 
-        /* Plain text tabs with vertical dividers */
-        .platform-tabs-strip {
+        .releases-title-badge {
           display: flex;
           align-items: center;
-          gap: 12px;
-          overflow-x: auto;
-          padding-bottom: 2px;
+          gap: 8px;
         }
 
-        .region-indicator-pill {
-          font-family: var(--font-ui);
+        .live-rec-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background-color: var(--accent);
+          box-shadow: 0 0 6px var(--accent);
+        }
+
+        .releases-title-text {
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: var(--ink);
+        }
+
+        .region-btn-nothing {
+          font-family: var(--font-mono);
           font-size: 0.6875rem;
           font-weight: 600;
           color: var(--ink-2);
           background: var(--surface);
           border: 1px solid var(--border);
-          padding: 3px 8px;
+          padding: 4px 8px;
           border-radius: var(--radius-sm);
-          transition: all 150ms ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          transition: all 100ms ease;
+        }
+
+        .region-btn-nothing:hover {
+          color: var(--ink);
+          border-color: var(--ink-2);
+        }
+
+        /* Platform Matrix */
+        .platform-matrix-nothing {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 4px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 3px;
+        }
+
+        .platform-btn-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          font-weight: 700;
           letter-spacing: 0.04em;
-          text-transform: uppercase;
-          cursor: pointer;
-        }
-
-        .region-indicator-pill:hover {
-          color: var(--accent);
-          border-color: var(--accent);
-        }
-
-        .platform-link {
-          font-family: var(--font-ui);
-          font-size: 0.8125rem;
-          font-weight: 500;
           color: var(--ink-2);
-          padding: 4px 0;
-          position: relative;
+          padding: 6px 12px;
+          border-radius: 2px;
           background: transparent;
           white-space: nowrap;
+          transition: all 100ms ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          flex: 1 1 auto;
+          justify-content: center;
         }
 
-        .platform-link:hover {
+        @media (max-width: 768px) {
+          .platform-btn-nothing {
+            padding: 6px 4px;
+            font-size: 0.625rem;
+            flex: 1 1 calc(25% - 4px);
+          }
+        }
+
+        .platform-btn-nothing:hover {
           color: var(--ink);
+          background: var(--surface-2);
         }
 
-        .platform-link.active {
-          color: var(--ink);
+        .platform-btn-nothing.is-active {
+          color: var(--bg);
+          background: var(--ink);
         }
 
-        .platform-link.active::after {
-          content: '';
-          position: absolute;
-          bottom: -2px;
-          left: 0;
-          right: 0;
-          height: 1px;
-          background: var(--accent);
+        .tab-active-dot {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          background-color: var(--accent);
         }
 
-        .tab-divider {
-          color: var(--border);
-          font-size: 0.75rem;
-          user-select: none;
-        }
-
-        /* Horizontal List Layout */
-        .releases-list {
+        /* Release Cards */
+        .releases-list-nothing {
           display: flex;
           flex-direction: column;
+          gap: 8px;
         }
 
-        .release-row {
+        .release-card-nothing {
           display: flex;
           align-items: center;
-          gap: 16px;
-          padding: 14px 10px;
-          border-bottom: 1px solid var(--border);
-          cursor: pointer;
-          border-radius: var(--radius-sm);
-          transition: background-color 150ms ease, transform 150ms ease;
-        }
-
-        .release-row:hover {
+          gap: 14px;
+          padding: 10px 12px;
           background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: border-color 120ms ease;
         }
 
-        .row-thumb {
-          width: 58px;
-          height: 86px;
+        .release-card-nothing:hover {
+          border-color: var(--ink-2);
+        }
+
+        .card-thumb-nothing {
+          width: 46px;
+          height: 68px;
           aspect-ratio: 2 / 3;
           flex-shrink: 0;
-          background: var(--surface);
-          border-radius: var(--radius-sm);
-          overflow: hidden;
+          background: var(--surface-2);
           border: 1px solid var(--border);
+          border-radius: 2px;
+          overflow: hidden;
         }
 
-        .row-poster-img {
+        .card-poster-img-nothing {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
-          transition: transform 200ms ease;
         }
 
-        .release-row:hover .row-poster-img {
-          transform: scale(1.04);
-        }
-
-        .row-poster-fallback {
+        .card-poster-fallback-nothing {
           width: 100%;
           height: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-family: var(--font-display);
-          color: var(--ink-2);
         }
 
-        .row-info {
+        .card-info-nothing {
           flex: 1;
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 3px;
           min-width: 0;
         }
 
-        .row-title-line {
+        .card-title-row-nothing {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
         }
 
-        .row-title {
-          font-family: var(--font-display);
-          font-size: 1.1rem;
-          font-weight: 400;
+        .card-title-nothing {
+          font-family: var(--font-ui);
+          font-size: 0.875rem;
+          font-weight: 500;
           color: var(--ink);
-          line-height: 1.2;
+          line-height: 1.25;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
 
-        .row-synopsis-preview {
-          font-size: 0.8125rem;
-          color: var(--ink-2);
-          line-height: 1.4;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          margin-top: 2px;
-        }
-
-        .provider-tag {
-          font-family: var(--font-ui);
-          font-size: 0.6875rem;
-          font-weight: 600;
-          padding: 1px 6px;
-          border-radius: 2px;
-          border: 1px solid var(--border);
+        .provider-tag-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.5625rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          padding: 1px 4px;
           background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: 2px;
           color: var(--ink-2);
-          letter-spacing: 0.02em;
           flex-shrink: 0;
         }
 
-        .provider-tag.netflix {
-          color: #ff334b;
-          border-color: rgba(255, 51, 75, 0.25);
-        }
-
-        .provider-tag.prime {
-          color: #00a8e1;
-          border-color: rgba(0, 168, 225, 0.25);
-        }
-
-        .provider-tag.apple {
-          color: var(--ink);
-        }
-
-        .provider-tag.max {
-          color: #a855f7;
-          border-color: rgba(168, 85, 247, 0.25);
-        }
-
-        .row-meta {
-          font-family: var(--font-ui);
-          font-size: 0.75rem;
+        .card-meta-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
           color: var(--ink-2);
           display: flex;
           align-items: center;
-          gap: 6px;
-          text-transform: uppercase;
+          gap: 5px;
           letter-spacing: 0.04em;
-        }
-
-        .row-sep {
-          color: var(--border);
-        }
-
-        .row-rating {
-          font-size: 0.8125rem;
           white-space: nowrap;
-          font-variant-numeric: tabular-nums;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
         }
 
-        .row-action {
+        .meta-year-span {
           flex-shrink: 0;
-          padding-right: 4px;
         }
 
-        .btn-release-add {
-          color: var(--ink-2);
-          padding: 8px;
-          background: transparent;
+        .meta-genres-span {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          min-width: 0;
+        }
+
+        .card-overview-nothing {
+          font-size: 0.75rem;
+          color: var(--ink-3);
+          line-height: 1.35;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .card-right-group-nothing {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+        }
+
+        @media (max-width: 600px) {
+          .card-right-group-nothing {
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 5px;
+          }
+        }
+
+        .card-score-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          font-weight: 700;
+          color: var(--ink);
+          white-space: nowrap;
+          padding: 2px 6px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: 2px;
+          flex-shrink: 0;
+        }
+
+        .card-score-nothing .score-denom {
+          color: var(--ink-3);
+          font-size: 0.625rem;
+          font-weight: 400;
+        }
+
+        .card-action-nothing {
+          flex-shrink: 0;
+        }
+
+        .btn-add-tech {
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          padding: 5px 9px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          color: var(--ink);
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 100ms ease;
+          white-space: nowrap;
+        }
+
+        .btn-add-tech:hover {
+          background: var(--ink);
+          color: var(--bg);
+          border-color: var(--ink);
+        }
+
+        .btn-add-tech.is-added {
+          background: rgba(34, 197, 94, 0.1);
+          border-color: rgba(34, 197, 94, 0.3);
+          color: #22c55e;
+        }
+
+        /* Empty & Skeleton */
+        .release-skeleton-nothing {
+          height: 68px;
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .skeleton-label {
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          color: var(--ink-3);
+          letter-spacing: 0.08em;
+        }
+
+        .empty-state-nothing {
+          padding: 48px 24px;
+          text-align: center;
+          border: 1px dashed var(--border);
           border-radius: var(--radius-sm);
         }
 
-        .btn-release-add:hover {
-          color: var(--accent);
+        .empty-title-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.875rem;
+          font-weight: 700;
+          color: var(--ink);
+          margin-bottom: 4px;
         }
 
-        .btn-release-added {
-          color: var(--accent);
-          padding: 8px;
-        }
-
-        .release-row-skeleton {
-          height: 104px;
-          border-bottom: 1px solid var(--border);
+        .empty-desc-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          color: var(--ink-3);
+          letter-spacing: 0.06em;
         }
       `}</style>
     </div>

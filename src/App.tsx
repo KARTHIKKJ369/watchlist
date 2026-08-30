@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { WatchlistProvider, useWatchlist } from './context/WatchlistContext';
 import { Navbar } from './components/Navbar';
 import { StatsHeader } from './components/StatsHeader';
@@ -9,7 +10,7 @@ import { DetailModal } from './components/DetailModal';
 import { AddMediaModal } from './components/AddMediaModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ToastContainer } from './components/ToastContainer';
-import { hideNativeSplash, registerBackButtonHandler } from './services/nativeService';
+import { hideNativeSplash, registerBackButtonHandler, triggerHaptic } from './services/nativeService';
 
 const MainApp: React.FC = () => {
   const {
@@ -18,6 +19,7 @@ const MainApp: React.FC = () => {
     selectedItem,
     closeDetailModal,
     isAddModalOpen,
+    openAddModal,
     closeAddModal,
     isSettingsModalOpen,
     closeSettingsModal,
@@ -39,6 +41,34 @@ const MainApp: React.FC = () => {
       activeTab,
     };
   }, [selectedItem, isAddModalOpen, isSettingsModalOpen, activeTab]);
+
+  // Global Keyboard Shortcuts (Cmd+K / Ctrl+K / '/' for search, Esc to close)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.tagName === 'SELECT' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        triggerHaptic('light');
+        openAddModal();
+      } else if (e.key === '/' && !selectedItem && !isAddModalOpen && !isSettingsModalOpen) {
+        e.preventDefault();
+        triggerHaptic('light');
+        openAddModal();
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [openAddModal, selectedItem, isAddModalOpen, isSettingsModalOpen]);
 
   useEffect(() => {
     // Hide native splash screen once UI is ready
@@ -76,18 +106,46 @@ const MainApp: React.FC = () => {
       {/* Navigation Header & Mobile Bottom Bar */}
       <Navbar />
 
-      {/* Main Content Area */}
+      {/* Main Content Area with Fluid Transitions */}
       <main className="main-content">
-        {activeTab === 'watchlist' && (
-          <>
-            <StatsHeader />
-            <WatchlistGrid />
-          </>
-        )}
+        <AnimatePresence mode="wait">
+          {activeTab === 'watchlist' && (
+            <motion.div
+              key="watchlist"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <StatsHeader />
+              <WatchlistGrid />
+            </motion.div>
+          )}
 
-        {activeTab === 'releases' && <ReleasesPage />}
+          {activeTab === 'releases' && (
+            <motion.div
+              key="releases"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <ReleasesPage />
+            </motion.div>
+          )}
 
-        {activeTab === 'stats' && <StatsPage />}
+          {activeTab === 'stats' && (
+            <motion.div
+              key="stats"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <StatsPage />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
 
       {/* Overlays & Modals */}

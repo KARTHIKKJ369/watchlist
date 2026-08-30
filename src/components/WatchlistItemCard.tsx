@@ -1,42 +1,63 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import type { WatchlistItem } from '../types';
+import {
+  Check,
+  ArrowSquareOut,
+} from '@phosphor-icons/react';
+import type { WatchlistItem, WatchStatus } from '../types';
 import { useWatchlist } from '../context/WatchlistContext';
+import { triggerHaptic } from '../services/nativeService';
 
 interface WatchlistItemCardProps {
   item: WatchlistItem;
 }
 
 export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) => {
-  const { openDetailModal } = useWatchlist();
+  const { openDetailModal, updateWatchlistItem } = useWatchlist();
   const [imgError, setImgError] = useState(false);
 
-  const getStatusLabel = (status: string) => {
+  const getStatusDisplay = (status: string) => {
     switch (status) {
       case 'watching':
-        return 'Watching';
+        return (
+          <span className="status-badge-nothing watching">
+            <span className="rec-dot-active" />
+            <span>WATCHING</span>
+          </span>
+        );
       case 'plan_to_watch':
-        return 'Queued';
+        return <span className="status-badge-nothing queued">QUEUED</span>;
       case 'completed':
-        return 'Completed';
+        return <span className="status-badge-nothing completed">DONE</span>;
       case 'dropped':
-        return 'Dropped';
+        return <span className="status-badge-nothing dropped">DROPPED</span>;
       default:
-        return status;
+        return <span className="status-badge-nothing">{status.toUpperCase()}</span>;
     }
   };
 
   const getStreamBadge = (providerName: string) => {
     const name = providerName.toLowerCase();
-    if (name.includes('netflix')) return 'Netflix';
-    if (name.includes('prime')) return 'Prime';
-    if (name.includes('disney')) return 'Disney+';
-    if (name.includes('apple')) return ' TV+';
+    if (name.includes('vi') || name.includes('vodafone') || name.includes('idea')) return 'VI';
+    if (name.includes('netflix')) return 'NETFLIX';
+    if (name.includes('prime')) return 'PRIME';
+    if (name.includes('disney') || name.includes('hotstar')) return 'DISNEY+';
+    if (name.includes('apple')) return 'APPLE TV+';
     if (name.includes('max') || name.includes('hbo')) return 'MAX';
-    if (name.includes('hulu')) return 'Hulu';
-    if (name.includes('paramount')) return 'Paramount+';
-    if (name.includes('peacock')) return 'Peacock';
-    return providerName;
+    if (name.includes('jio')) return 'JIO';
+    return providerName.length > 8 ? providerName.slice(0, 6).toUpperCase() : providerName.toUpperCase();
+  };
+
+  const handleCardClick = () => {
+    triggerHaptic('selection');
+    openDetailModal(item);
+  };
+
+  const handleQuickCompleteToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    triggerHaptic('success');
+    const newStatus: WatchStatus = item.status === 'completed' ? 'watching' : 'completed';
+    updateWatchlistItem(item.id, { status: newStatus });
   };
 
   const ratingValue = item.userRating > 0 ? item.userRating : item.voteAverage;
@@ -47,305 +68,337 @@ export const WatchlistItemCard: React.FC<WatchlistItemCardProps> = ({ item }) =>
 
   return (
     <div
-      className="card-root"
-      onClick={() => openDetailModal(item)}
+      className="card-root-nothing"
+      onClick={handleCardClick}
       role="button"
       tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          handleCardClick();
+        }
+      }}
     >
-      {/* Poster Frame (2:3 Aspect Ratio) */}
-      <div className="poster-frame">
-        <motion.div className="poster-inner" layoutId={`poster-${item.id}`}>
+      {/* Poster Frame (2:3 Aspect Ratio with Technical 1px Border) */}
+      <div className="poster-frame-nothing">
+        <motion.div className="poster-inner-nothing" layoutId={`poster-${item.id}`}>
           {item.posterPath && !imgError ? (
             <img
               src={item.posterPath}
               alt={item.title}
-              className={`poster-image ${item.status === 'completed' ? 'completed-img' : ''}`}
+              className={`poster-image-nothing ${item.status === 'completed' ? 'completed-img' : ''}`}
               onError={() => setImgError(true)}
               loading="lazy"
             />
           ) : (
-            <div className="poster-fallback">
-              {item.backdropPath ? (
-                <img
-                  src={item.backdropPath}
-                  alt={item.title}
-                  className="poster-fallback-backdrop"
-                />
-              ) : null}
-              <div className="poster-fallback-overlay" />
-              <span className="fallback-title">{item.title}</span>
+            <div className="poster-fallback-nothing">
+              <span className="fallback-title-nothing">{item.title}</span>
             </div>
           )}
 
-          {/* Floating Status Indicator on Poster Top-Left */}
-          <div className="poster-status-anchor">
-            <span className={`poster-status-tag ${item.status}`}>
-              {getStatusLabel(item.status)}
-            </span>
+          {/* Desktop Hover Quick Action Overlay */}
+          <div className="poster-hover-overlay-nothing">
+            <button
+              className={`quick-action-tech ${item.status === 'completed' ? 'active-done' : ''}`}
+              onClick={handleQuickCompleteToggle}
+              title={item.status === 'completed' ? 'Mark as In Progress' : 'Mark as Done'}
+              aria-label="Toggle Complete"
+            >
+              <Check size={14} weight="bold" />
+            </button>
+
+            <button
+              className="quick-action-tech"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCardClick();
+              }}
+              title="Open Cinema Details"
+              aria-label="Open Details"
+            >
+              <ArrowSquareOut size={14} weight="bold" />
+            </button>
           </div>
 
-          {/* Floating Stream Tag (Top-Right of Poster) */}
+          {/* Top-Left Floating Status Indicator */}
+          <div className="poster-status-anchor-nothing">
+            {getStatusDisplay(item.status)}
+          </div>
+
+          {/* Bottom-Left Streaming Provider Tag */}
           {primaryStreamProvider && (
-            <div className="poster-stream-anchor">
-              <span className="stream-badge-tag">{primaryStreamProvider}</span>
+            <div className="poster-stream-anchor-nothing">
+              <span className="stream-badge-nothing">{primaryStreamProvider}</span>
             </div>
           )}
         </motion.div>
       </div>
 
-      {/* Caption: Title + Rating Row (Strongest), Year + Genre + Stream (Secondary) */}
-      <div className="card-caption">
-        <div className="caption-primary-row">
-          <h3 className="card-title" title={item.title}>
+      {/* Technical Caption */}
+      <div className="card-caption-nothing">
+        <div className="caption-primary-row-nothing">
+          <h3 className="card-title-nothing" title={item.title}>
             {item.title}
           </h3>
           {ratingValue > 0 ? (
-            <div className="rating-num card-rating-val">
-              {ratingValue}
-              <span className="rating-suffix">/10</span>
+            <div className="card-rating-nothing">
+              <span className="rating-val">{ratingValue}</span>
+              <span className="rating-denom">/10</span>
             </div>
           ) : null}
         </div>
 
-        <div className="caption-secondary-row">
-          <span className="meta-year">{item.releaseYear || 'TBA'}</span>
+        <div className="caption-secondary-row-nothing">
+          <span>{item.releaseYear || 'TBA'}</span>
           {item.genres?.length > 0 && (
             <>
-              <span className="meta-sep">·</span>
-              <span className="meta-genre">{item.genres[0]}</span>
-            </>
-          )}
-          {primaryStreamProvider && (
-            <>
-              <span className="meta-sep">·</span>
-              <span className="meta-stream-label">{primaryStreamProvider}</span>
+              <span className="meta-sep">//</span>
+              <span className="meta-genre">{item.genres[0].toUpperCase()}</span>
             </>
           )}
         </div>
       </div>
 
       <style>{`
-        .card-root {
+        .card-root-nothing {
           display: flex;
           flex-direction: column;
-          min-width: 0;
-          width: 100%;
           cursor: pointer;
           user-select: none;
-          transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+          outline: none;
+          background: transparent;
+          transition: transform 100ms ease;
+          touch-action: manipulation;
+          -webkit-tap-highlight-color: transparent;
         }
 
-        .card-root:hover {
-          transform: translateY(-2px);
+        .card-root-nothing:active {
+          transform: scale(0.97);
         }
 
-        .poster-frame {
+        /* 2:3 Aspect Ratio Technical Poster Frame */
+        .poster-frame-nothing {
           position: relative;
           width: 100%;
           aspect-ratio: 2 / 3;
           background: var(--surface);
+          border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           overflow: hidden;
-          border: 1px solid var(--border);
-          transition: border-color 200ms ease, box-shadow 200ms ease;
+          transition: border-color 120ms ease;
         }
 
-        .poster-inner {
+        .card-root-nothing:hover .poster-frame-nothing {
+          border-color: var(--ink-2);
+        }
+
+        .poster-inner-nothing {
           width: 100%;
           height: 100%;
           position: relative;
         }
 
-        .poster-image {
+        .poster-image-nothing {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
-          transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1), filter 300ms ease;
+          transition: transform 150ms ease;
         }
 
-        .poster-image.completed-img {
-          filter: grayscale(35%);
-        }
-
-        .card-root:hover .poster-image {
+        .card-root-nothing:hover .poster-image-nothing {
           transform: scale(1.02);
         }
 
-        .card-root:hover .poster-frame {
-          border-color: var(--accent);
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        .poster-image-nothing.completed-img {
+          filter: grayscale(0.35) contrast(0.95);
         }
 
-        /* Fallback with subtle blurred artwork treatment */
-        .poster-fallback {
-          position: relative;
+        .poster-fallback-nothing {
           width: 100%;
           height: 100%;
+          background: var(--surface-2);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 16px;
+          padding: 14px;
           text-align: center;
-          background: var(--surface);
-          overflow: hidden;
         }
 
-        .poster-fallback-backdrop {
-          position: absolute;
-          inset: 0;
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          filter: blur(20px);
-          opacity: 0.35;
-          transform: scale(1.2);
-        }
-
-        .poster-fallback-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.8) 100%);
-        }
-
-        .fallback-title {
-          position: relative;
-          z-index: 2;
-          font-family: var(--font-display);
-          font-size: 1.05rem;
-          color: #ffffff;
-          line-height: 1.3;
-        }
-
-        /* Top-Left Floating Status Badge */
-        .poster-status-anchor {
-          position: absolute;
-          top: 6px;
-          left: 6px;
-          z-index: 2;
-          background: rgba(0, 0, 0, 0.78);
-          backdrop-filter: blur(8px);
-          padding: 2.5px 7px;
-          border-radius: var(--radius-sm);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          line-height: 1;
-        }
-
-        .poster-status-tag {
-          font-family: var(--font-ui);
-          font-size: 0.625rem;
-          font-weight: 600;
-          letter-spacing: 0.05em;
+        .fallback-title-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.8125rem;
+          color: var(--ink-2);
           text-transform: uppercase;
-          color: #ffffff;
         }
 
-        .poster-status-tag.watching {
-          color: var(--accent);
-        }
-
-        /* Top-Right Floating Stream Badge */
-        .poster-stream-anchor {
+        /* Top-Left Status Badge */
+        .poster-status-anchor-nothing {
           position: absolute;
-          top: 6px;
-          right: 6px;
-          z-index: 2;
-          background: rgba(0, 0, 0, 0.78);
-          backdrop-filter: blur(8px);
-          padding: 2.5px 7px;
-          border-radius: var(--radius-sm);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          line-height: 1;
+          top: 8px;
+          left: 8px;
+          z-index: 10;
         }
 
-        .stream-badge-tag {
-          font-family: var(--font-ui);
-          font-size: 0.625rem;
-          font-weight: 600;
+        .status-badge-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.5625rem;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          padding: 2px 6px;
+          background: #000000;
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          border-radius: 2px;
           color: #ffffff;
-          letter-spacing: 0.02em;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
         }
 
-        /* Caption Structure */
-        .card-caption {
-          padding-top: 8px;
+        .status-badge-nothing.watching {
+          border-color: rgba(215, 25, 33, 0.6);
+        }
+
+        .rec-dot-active {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background-color: var(--accent);
+          box-shadow: 0 0 6px var(--accent);
+        }
+
+        .status-badge-nothing.completed {
+          border-color: rgba(34, 197, 94, 0.5);
+          color: #22c55e;
+        }
+
+        .status-badge-nothing.dropped {
+          color: #71717a;
+          border-color: #3f3f46;
+        }
+
+        /* Bottom-Left Stream Badge */
+        .poster-stream-anchor-nothing {
+          position: absolute;
+          bottom: 8px;
+          left: 8px;
+          z-index: 10;
+        }
+
+        .stream-badge-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.5625rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          padding: 2px 5px;
+          background: rgba(0, 0, 0, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.15);
+          border-radius: 2px;
+          color: #d4d4d8;
+        }
+
+        /* Quick Action Hover */
+        .poster-hover-overlay-nothing {
+          position: absolute;
+          top: 8px;
+          right: 8px;
           display: flex;
           flex-direction: column;
-          gap: 2px;
-          min-width: 0;
-          width: 100%;
-        }
-
-        .caption-primary-row {
-          display: flex;
-          align-items: baseline;
-          justify-content: space-between;
           gap: 6px;
-          min-width: 0;
-          width: 100%;
+          opacity: 0;
+          transition: opacity 120ms ease;
+          z-index: 15;
         }
 
-        .card-title {
-          font-family: var(--font-display);
-          font-size: 0.9375rem;
-          font-weight: 400;
+        .card-root-nothing:hover .poster-hover-overlay-nothing {
+          opacity: 1;
+        }
+
+        .quick-action-tech {
+          width: 28px;
+          height: 28px;
+          background: #000000;
+          border: 1px solid rgba(255, 255, 255, 0.25);
+          border-radius: 2px;
+          color: #ffffff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 100ms ease;
+        }
+
+        .quick-action-tech:hover {
+          background: var(--ink);
+          color: var(--bg);
+          border-color: var(--ink);
+        }
+
+        .quick-action-tech.active-done {
+          background: #22c55e;
+          color: #000000;
+          border-color: #22c55e;
+        }
+
+        /* Caption */
+        .card-caption-nothing {
+          margin-top: 8px;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+
+        .caption-primary-row-nothing {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .card-title-nothing {
+          font-family: var(--font-ui);
+          font-size: 0.875rem;
+          font-weight: 500;
           color: var(--ink);
           line-height: 1.25;
-          white-space: nowrap;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
-          text-overflow: ellipsis;
-          flex: 1;
-          min-width: 0;
-          transition: color 150ms ease;
+          min-height: 2.2em;
         }
 
-        .card-root:hover .card-title {
-          color: var(--ink);
-        }
-
-        .card-rating-val {
+        .card-rating-nothing {
+          font-family: var(--font-mono);
           font-size: 0.75rem;
-          font-weight: 600;
-          flex-shrink: 0;
-          font-variant-numeric: tabular-nums;
+          font-weight: 700;
+          color: var(--ink);
           white-space: nowrap;
-          transition: color 150ms ease;
         }
 
-        .card-root:hover .card-rating-val {
-          color: var(--accent);
+        .card-rating-nothing .rating-denom {
+          color: var(--ink-3);
+          font-size: 0.625rem;
+          font-weight: 400;
         }
 
-        .caption-secondary-row {
-          font-family: var(--font-ui);
+        .caption-secondary-row-nothing {
+          font-family: var(--font-mono);
           font-size: 0.6875rem;
           color: var(--ink-2);
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
           display: flex;
           align-items: center;
           gap: 5px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          min-width: 0;
+          letter-spacing: 0.04em;
         }
 
         .meta-sep {
           color: var(--border);
-          flex-shrink: 0;
         }
 
         .meta-genre {
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-        }
-
-        .meta-stream-label {
-          color: var(--accent);
-          font-weight: 600;
-          flex-shrink: 0;
         }
       `}</style>
     </div>

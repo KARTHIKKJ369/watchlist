@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'motion/react';
 import {
   X,
   MagnifyingGlass,
@@ -11,8 +12,15 @@ import { fetchTrending, searchMedia } from '../services/tmdbApi';
 import { useWatchlist } from '../context/WatchlistContext';
 
 export const AddMediaModal: React.FC = () => {
-  const { isAddModalOpen, closeAddModal, addToWatchlist, isInWatchlist, openDetailModal, getWatchlistItem } =
-    useWatchlist();
+  const {
+    isAddModalOpen,
+    closeAddModal,
+    addModalPrefill,
+    addToWatchlist,
+    isInWatchlist,
+    openDetailModal,
+    getWatchlistItem,
+  } = useWatchlist();
 
   const [activeTab, setActiveTab] = useState<'search' | 'manual'>('search');
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +47,9 @@ export const AddMediaModal: React.FC = () => {
   useEffect(() => {
     if (isAddModalOpen) {
       fetchTrending('week').then((items: MediaSearchResult[]) => setTrendingList(items.slice(0, 8)));
+      if (addModalPrefill) {
+        setSearchQuery(addModalPrefill);
+      }
       setTimeout(() => {
         searchInputRef.current?.focus();
       }, 100);
@@ -46,7 +57,7 @@ export const AddMediaModal: React.FC = () => {
       setSearchQuery('');
       setSearchResults([]);
     }
-  }, [isAddModalOpen]);
+  }, [isAddModalOpen, addModalPrefill]);
 
   useEffect(() => {
     if (!searchQuery.trim() || searchQuery.trim().length < 2) {
@@ -169,7 +180,14 @@ export const AddMediaModal: React.FC = () => {
 
   return (
     <div className="modal-overlay" onClick={closeAddModal}>
-      <div className="modal-sheet add-modal-sheet" onClick={(e) => e.stopPropagation()}>
+      <motion.div
+        className="modal-sheet add-modal-sheet"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 32, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.985 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+      >
         {/* Header */}
         <div className="add-modal-header">
           <div className="add-tabs-strip">
@@ -289,9 +307,19 @@ export const AddMediaModal: React.FC = () => {
                       );
                     })}
                   </div>
-                ) : !isLoading ? (
-                  <p className="empty-search-msg">No results for &ldquo;{searchQuery}&rdquo;</p>
-                ) : null
+                ) : isLoading ? (
+                  <div className="search-loading-state">
+                    <SpinnerGap size={24} className="spin-icon-large" />
+                    <span className="search-status-text">Searching cinema vault...</span>
+                  </div>
+                ) : (
+                  <div className="empty-search-state">
+                    <p className="empty-search-msg">No titles found for &ldquo;{searchQuery}&rdquo;</p>
+                    <button className="btn-outline btn-switch-manual" onClick={() => setActiveTab('manual')}>
+                      + Add manually
+                    </button>
+                  </div>
+                )
               ) : (
                 <div className="trending-column">
                   <span className="trending-heading">Trending this week</span>
@@ -488,22 +516,46 @@ export const AddMediaModal: React.FC = () => {
             </div>
           </form>
         )}
-      </div>
+      </motion.div>
 
       <style>{`
         .add-modal-sheet {
           max-width: 680px;
+          width: 100%;
+          height: 82vh;
+          max-height: 620px;
+          min-height: 480px;
           background: var(--bg);
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+          box-shadow: 0 24px 64px oklch(0% 0 0 / 0.7);
+        }
+
+        @media (max-width: 768px) {
+          .add-modal-sheet {
+            height: 100vh;
+            max-height: 100vh;
+            width: 100vw;
+            border-radius: 0;
+            border: none;
+          }
+
+          .add-modal-header {
+            padding-top: max(14px, calc(10px + var(--safe-top)));
+          }
         }
 
         .add-modal-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 20px;
+          padding: 14px 20px;
           border-bottom: 1px solid var(--border);
+          flex-shrink: 0;
+          background: var(--bg);
         }
 
         .add-tabs-strip {
@@ -518,6 +570,8 @@ export const AddMediaModal: React.FC = () => {
           font-weight: 500;
           color: var(--ink-2);
           background: transparent;
+          cursor: pointer;
+          transition: color 150ms ease;
         }
 
         .add-tab-link:hover,
@@ -530,24 +584,27 @@ export const AddMediaModal: React.FC = () => {
         }
 
         .search-tab-content {
-          padding: 20px;
           display: flex;
           flex-direction: column;
-          gap: 16px;
-          max-height: 70vh;
-          overflow-y: auto;
+          flex: 1 1 auto;
+          overflow: hidden;
+          min-height: 0;
         }
 
         .search-add-bar {
           display: flex;
           align-items: center;
           gap: 12px;
+          padding: 14px 20px;
+          border-bottom: 1px solid var(--border);
+          background: var(--bg);
+          flex-shrink: 0;
         }
 
         @media (max-width: 600px) {
           .search-add-bar {
-            flex-direction: column;
-            align-items: stretch;
+            padding: 12px 16px;
+            gap: 8px;
           }
         }
 
@@ -556,12 +613,14 @@ export const AddMediaModal: React.FC = () => {
           flex: 1;
           display: flex;
           align-items: center;
+          min-width: 0;
         }
 
         .search-lead-icon {
           position: absolute;
           left: 10px;
           color: var(--ink-2);
+          pointer-events: none;
         }
 
         .search-text-field {
@@ -572,11 +631,21 @@ export const AddMediaModal: React.FC = () => {
           border: 1px solid var(--border);
           font-size: 0.875rem;
           border-radius: var(--radius-sm);
+          width: 100%;
+        }
+
+        .search-text-field:focus {
+          border-color: var(--accent);
         }
 
         .spin-icon {
           position: absolute;
           right: 10px;
+          color: var(--accent);
+          animation: spin 1s linear infinite;
+        }
+
+        .spin-icon-large {
           color: var(--accent);
           animation: spin 1s linear infinite;
         }
@@ -590,17 +659,24 @@ export const AddMediaModal: React.FC = () => {
           position: absolute;
           right: 10px;
           color: var(--ink-2);
+          cursor: pointer;
+        }
+
+        .clear-text-btn:hover {
+          color: var(--ink);
         }
 
         .status-preset-group {
           display: flex;
           align-items: center;
           gap: 6px;
+          flex-shrink: 0;
         }
 
         .preset-label {
           font-size: 0.75rem;
           color: var(--ink-2);
+          white-space: nowrap;
         }
 
         .preset-select {
@@ -609,11 +685,56 @@ export const AddMediaModal: React.FC = () => {
           background: var(--surface);
           border: 1px solid var(--border);
           width: auto;
+          cursor: pointer;
         }
 
         .search-scroll-list {
+          flex: 1 1 auto;
+          overflow-y: auto;
+          padding: 14px 20px 24px;
+          min-height: 0;
           display: flex;
           flex-direction: column;
+        }
+
+        @media (max-width: 768px) {
+          .search-scroll-list {
+            padding: 12px 16px 20px;
+          }
+        }
+
+        .search-loading-state {
+          padding: 48px 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 12px;
+        }
+
+        .search-status-text {
+          font-size: 0.8125rem;
+          color: var(--ink-2);
+        }
+
+        .empty-search-state {
+          padding: 48px 16px;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          gap: 12px;
+        }
+
+        .empty-search-msg {
+          font-size: 0.875rem;
+          color: var(--ink-2);
+        }
+
+        .btn-switch-manual {
+          font-size: 0.75rem;
+          padding: 6px 12px;
         }
 
         .trending-heading {
@@ -701,19 +822,15 @@ export const AddMediaModal: React.FC = () => {
           padding: 4px 8px;
         }
 
-        .empty-search-msg {
-          padding: 32px 0;
-          text-align: center;
-          font-size: 0.8125rem;
-          color: var(--ink-2);
-        }
-
         /* Manual Form */
         .manual-form-content {
+          flex: 1 1 auto;
+          overflow-y: auto;
           padding: 20px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 18px;
+          min-height: 0;
         }
 
         .form-fields-grid {
@@ -752,6 +869,8 @@ export const AddMediaModal: React.FC = () => {
           display: flex;
           justify-content: flex-end;
           gap: 10px;
+          margin-top: auto;
+          padding-top: 8px;
         }
       `}</style>
     </div>

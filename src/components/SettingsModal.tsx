@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { motion } from 'motion/react';
 import {
   X,
   DownloadSimple,
@@ -9,6 +10,7 @@ import {
   GlobeHemisphereWest,
   Eye,
   EyeSlash,
+  Cloud,
 } from '@phosphor-icons/react';
 import {
   getAuthUser,
@@ -19,6 +21,7 @@ import {
   fetchWatchlistFromCloud,
 } from '../services/cloudSync';
 import { useWatchlist } from '../context/WatchlistContext';
+import { triggerHaptic } from '../services/nativeService';
 
 export const SUPPORTED_REGIONS = [
   { code: 'US', name: 'United States (US)' },
@@ -75,7 +78,6 @@ export const SettingsModal: React.FC = () => {
       return;
     }
 
-    // Save region preference
     if (selectedRegionInput) {
       setRegion(selectedRegionInput);
     }
@@ -94,27 +96,21 @@ export const SettingsModal: React.FC = () => {
       setUsernameInput('');
       setPasswordInput('');
 
-      // Fetch cloud items immediately on login
       const cloudRes = await fetchWatchlistFromCloud();
       if (cloudRes.success && cloudRes.items && cloudRes.items.length > 0) {
+        const cloudItems = cloudRes.items;
         setWatchlist((localList) => {
-          const cloudMap = new Map(cloudRes.items!.map((i) => [i.id, i]));
-          const localOnly = localList.filter((l) => !cloudMap.has(l.id));
-          if (localOnly.length > 0) {
-            const merged = [...cloudRes.items!, ...localOnly];
-            syncWatchlistToCloud(merged);
-            return merged;
-          }
-          return cloudRes.items!;
+          const map = new Map();
+          localList.forEach((item) => map.set(item.tmdbId ? `tmdb-${item.tmdbId}` : item.id, item));
+          cloudItems.forEach((item) => map.set(item.tmdbId ? `tmdb-${item.tmdbId}` : item.id, item));
+          return Array.from(map.values());
         });
-        showToast(`Welcome back, @${res.user.username}! Loaded ${cloudRes.items.length} titles from cloud.`, 'success');
-      } else {
-        // First-time or cloud is empty, sync current local list up
-        if (watchlist.length > 0) {
-          await syncWatchlistToCloud(watchlist);
-        }
-        showToast(`Welcome back, @${res.user.username}!`, 'success');
       }
+
+      showToast(
+        authMode === 'register' ? 'Account created & synced!' : 'Signed in successfully',
+        'success'
+      );
     } else {
       showToast(res.error || 'Authentication failed', 'error');
     }
@@ -123,15 +119,16 @@ export const SettingsModal: React.FC = () => {
   const handleCloudLogout = () => {
     logoutCloudUser();
     setCloudUser(null);
-    showToast('Signed out of cloud vault', 'info');
+    showToast('Signed out of cloud account', 'info');
   };
 
   const handlePushToCloud = async () => {
     setIsSyncing(true);
+    triggerHaptic('light');
     const res = await syncWatchlistToCloud(watchlist);
     setIsSyncing(false);
     if (res.success) {
-      showToast(`Synced ${watchlist.length} titles to your cloud account`, 'success');
+      showToast(`Cloud vault synced (${watchlist.length} titles)`, 'success');
     } else {
       showToast(res.error || 'Sync failed', 'error');
     }
@@ -139,11 +136,12 @@ export const SettingsModal: React.FC = () => {
 
   const handlePullFromCloud = async () => {
     setIsSyncing(true);
+    triggerHaptic('light');
     const res = await fetchWatchlistFromCloud();
     setIsSyncing(false);
     if (res.success && res.items) {
       setWatchlist(res.items);
-      showToast(`Restored ${res.items.length} titles from cloud account`, 'success');
+      showToast(`Restored ${res.items.length} titles from cloud`, 'success');
     } else {
       showToast(res.error || 'Fetch failed', 'error');
     }
@@ -154,9 +152,12 @@ export const SettingsModal: React.FC = () => {
     if (e.target.files && e.target.files[0]) {
       fileReader.readAsText(e.target.files[0], 'UTF-8');
       fileReader.onload = (event) => {
-        if (event.target?.result) {
-          const success = importWatchlistFromJSON(event.target.result as string);
-          if (success) closeSettingsModal();
+        const content = event.target?.result as string;
+        if (content) {
+          const success = importWatchlistFromJSON(content);
+          if (success) {
+            showToast('Successfully imported titles into Vault', 'success');
+          }
         }
       };
     }
@@ -165,35 +166,46 @@ export const SettingsModal: React.FC = () => {
   const handleRegionChange = (newReg: string) => {
     setRegion(newReg);
     setSelectedRegionInput(newReg);
+    triggerHaptic('selection');
   };
 
   return (
     <div className="modal-overlay" onClick={closeSettingsModal}>
-      <div className="modal-sheet settings-modal-sheet" onClick={(e) => e.stopPropagation()}>
+      <motion.div
+        className="modal-sheet settings-modal-sheet"
+        onClick={(e) => e.stopPropagation()}
+        initial={{ opacity: 0, y: 24, scale: 0.99 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 20, scale: 0.99 }}
+        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+      >
         {/* Header */}
         <div className="settings-header">
-          <h2 className="settings-title">Account & Vault</h2>
-          <button className="btn-minimal modal-close-btn" onClick={closeSettingsModal} aria-label="Close">
-            <X size={18} />
+          <div className="settings-title-wrap">
+            <span className="rec-dot-title" />
+            <h2 className="settings-title">SYSTEM // SETTINGS</h2>
+          </div>
+          <button className="modal-close-btn-tech" onClick={closeSettingsModal} aria-label="Close">
+            <X size={16} weight="bold" />
           </button>
         </div>
 
-        {/* Body */}
+        {/* Content Body */}
         <div className="settings-content">
-          {/* Streaming Region & Localization */}
+          {/* 1. Streaming Region & Localization */}
           <div className="settings-block">
-            <div className="region-header-row">
-              <span className="settings-label">Streaming Region & Country</span>
-              <GlobeHemisphereWest size={16} color="var(--accent)" />
+            <div className="block-header-row">
+              <span className="settings-label">// STREAMING REGION & LOCALIZATION</span>
+              <GlobeHemisphereWest size={15} color="var(--accent)" weight="bold" />
             </div>
             <p className="settings-desc">
-              Select your country to see accurate where-to-watch streaming releases (OTT) and local certification.
+              Select your region to see accurate where-to-watch streaming releases (OTT) and local certification.
             </p>
-            <div className="region-select-wrapper">
+            <div className="select-wrap-tech">
               <select
-                value={region}
+                value={selectedRegionInput}
                 onChange={(e) => handleRegionChange(e.target.value)}
-                className="region-dropdown"
+                className="region-dropdown-tech"
               >
                 {SUPPORTED_REGIONS.map((r) => (
                   <option key={r.code} value={r.code}>
@@ -204,130 +216,136 @@ export const SettingsModal: React.FC = () => {
             </div>
           </div>
 
-          <div className="divider-line" />
-
-          {/* Cloud Account & Multi-Device Sync */}
+          {/* 2. Cloud Sync & Multi-Device */}
           <div className="settings-block">
-            <span className="settings-label">Cloud Sync & Account</span>
+            <div className="block-header-row">
+              <span className="settings-label">// CLOUD SYNC & MULTI-DEVICE</span>
+              <Cloud size={15} color="var(--accent)" weight="bold" />
+            </div>
             <p className="settings-desc">
-              Sign in with a simple ID and password to access and sync your personal cinema vault across your phone, tablet, and desktop.
+              Sign in to automatically synchronize your personal cinema vault across your mobile phone, tablet, and desktop browser.
             </p>
 
             {cloudUser ? (
               <div className="cloud-session-box">
                 <div className="session-user-line">
                   <div className="user-profile-info">
-                    <User size={18} color="var(--accent)" weight="bold" />
+                    <User size={16} weight="bold" color="var(--accent)" />
                     <span className="user-badge">@{cloudUser.username}</span>
                   </div>
-                  <button className="btn-minimal logout-btn" onClick={handleCloudLogout}>
-                    <SignOut size={14} />
-                    <span>Sign Out</span>
+                  <button className="logout-btn-tech" onClick={handleCloudLogout}>
+                    <SignOut size={14} weight="bold" />
+                    <span>[SIGN OUT]</span>
                   </button>
                 </div>
 
-                <div className="sync-actions-row">
-                  <button className="btn-outline sync-btn" onClick={handlePushToCloud} disabled={isSyncing}>
-                    <ArrowClockwise size={14} className={isSyncing ? 'spinning' : ''} />
-                    <span>Sync Vault ({watchlist.length} titles)</span>
+                <div className="peer-actions-grid">
+                  <button
+                    className="btn-action-tech primary"
+                    onClick={handlePushToCloud}
+                    disabled={isSyncing}
+                  >
+                    <ArrowClockwise size={14} weight="bold" className={isSyncing ? 'spinning' : ''} />
+                    <span>SYNC ({watchlist.length})</span>
                   </button>
-                  <button className="btn-minimal restore-cloud-btn" onClick={handlePullFromCloud} disabled={isSyncing}>
-                    <span>Restore from cloud</span>
+
+                  <button
+                    className="btn-action-tech"
+                    onClick={handlePullFromCloud}
+                    disabled={isSyncing}
+                  >
+                    <DownloadSimple size={14} weight="bold" />
+                    <span>RESTORE CLOUD</span>
                   </button>
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleAuthSubmit} className="cloud-auth-form">
+              <form className="cloud-auth-form" onSubmit={handleAuthSubmit}>
                 <div className="auth-mode-toggle">
                   <button
                     type="button"
                     className={`auth-mode-btn ${authMode === 'login' ? 'active' : ''}`}
                     onClick={() => setAuthMode('login')}
                   >
-                    Sign In
+                    [SIGN IN]
                   </button>
                   <button
                     type="button"
                     className={`auth-mode-btn ${authMode === 'register' ? 'active' : ''}`}
                     onClick={() => setAuthMode('register')}
                   >
-                    Create Free Account
+                    [CREATE ACCOUNT]
                   </button>
                 </div>
 
                 <div className="auth-inputs-grid">
                   <input
                     type="text"
-                    placeholder="User ID / Username"
+                    placeholder="USERNAME"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
                     className="api-input"
-                    autoComplete="username"
+                    autoCapitalize="none"
+                    autoCorrect="off"
                   />
                   <div className="password-input-wrap">
                     <input
                       type={showPassword ? 'text' : 'password'}
-                      placeholder="Password"
+                      placeholder="PASSWORD"
                       value={passwordInput}
                       onChange={(e) => setPasswordInput(e.target.value)}
                       className="api-input password-input"
-                      autoComplete={authMode === 'login' ? 'current-password' : 'new-password'}
                     />
                     <button
                       type="button"
                       className="btn-show-password"
                       onClick={() => setShowPassword(!showPassword)}
-                      title={showPassword ? 'Hide password' : 'Show password'}
-                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
-                      {showPassword ? <EyeSlash size={16} /> : <Eye size={16} />}
+                      {showPassword ? <EyeSlash size={14} /> : <Eye size={14} />}
                     </button>
                   </div>
                 </div>
 
-                <div className="auth-region-field">
-                  <label className="auth-field-label">Your Region / Country</label>
-                  <select
-                    value={selectedRegionInput}
-                    onChange={(e) => setSelectedRegionInput(e.target.value)}
-                    className="region-dropdown"
-                  >
-                    {SUPPORTED_REGIONS.map((r) => (
-                      <option key={r.code} value={r.code}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <button type="submit" className="btn-primary-auth" disabled={isAuthLoading}>
-                  {isAuthLoading
-                    ? 'Connecting...'
-                    : authMode === 'login'
-                    ? 'Sign In & Sync'
-                    : 'Create Account'}
+                <button
+                  type="submit"
+                  className="btn-primary-auth"
+                  disabled={isAuthLoading}
+                >
+                  {isAuthLoading ? (
+                    <ArrowClockwise size={15} className="spinning" />
+                  ) : authMode === 'register' ? (
+                    'CREATE CLOUD VAULT'
+                  ) : (
+                    'SIGN IN & SYNC'
+                  )}
                 </button>
               </form>
             )}
           </div>
 
-          <div className="divider-line" />
-
-          {/* Backup & Portability */}
+          {/* 3. Offline Backup & Portability */}
           <div className="settings-block">
-            <span className="settings-label">Offline Backup & Export</span>
+            <div className="block-header-row">
+              <span className="settings-label">// OFFLINE BACKUP & DATA PORTABILITY</span>
+              <DownloadSimple size={15} color="var(--ink-2)" weight="bold" />
+            </div>
             <p className="settings-desc">
-              Export an offline JSON vault file or restore from a previously downloaded backup.
+              Export an offline JSON vault file or restore from a previously downloaded backup at any time.
             </p>
-            <div className="backup-row">
-              <button className="btn-outline" onClick={exportWatchlistAsJSON}>
-                <DownloadSimple size={14} />
-                <span>Export JSON ({watchlist.length})</span>
+
+            <div className="peer-actions-grid">
+              <button
+                className="btn-action-tech"
+                onClick={() => exportWatchlistAsJSON()}
+                title="Export your entire watchlist as a JSON file"
+              >
+                <DownloadSimple size={14} weight="bold" />
+                <span>EXPORT JSON ({watchlist.length})</span>
               </button>
 
-              <label className="btn-outline file-label-btn">
-                <UploadSimple size={14} />
-                <span>Import JSON</span>
+              <label className="btn-action-tech file-label-btn">
+                <UploadSimple size={14} weight="bold" />
+                <span>IMPORT JSON</span>
                 <input
                   type="file"
                   accept=".json"
@@ -337,19 +355,32 @@ export const SettingsModal: React.FC = () => {
               </label>
             </div>
           </div>
-
         </div>
-      </div>
+      </motion.div>
 
       <style>{`
         .settings-modal-sheet {
-          max-width: 480px;
-          background: var(--bg);
+          max-width: 580px;
+          width: 100%;
+          background: var(--surface);
           border: 1px solid var(--border);
-          border-radius: var(--radius-lg);
-          max-height: 90vh;
+          border-radius: var(--radius-md);
           overflow-y: auto;
-          box-shadow: 0 24px 64px oklch(0% 0 0 / 0.8);
+          max-height: 88vh;
+        }
+
+        @media (max-width: 768px) {
+          .settings-modal-sheet {
+            height: 100vh;
+            max-height: 100vh;
+            max-width: 100vw;
+            border-radius: 0;
+            border: none;
+          }
+
+          .settings-header {
+            padding-top: max(16px, calc(12px + var(--safe-top)));
+          }
         }
 
         .settings-header {
@@ -360,95 +391,168 @@ export const SettingsModal: React.FC = () => {
           border-bottom: 1px solid var(--border);
           position: sticky;
           top: 0;
-          background: var(--bg);
+          background: var(--surface);
           z-index: 10;
+        }
+
+        .settings-title-wrap {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .rec-dot-title {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background-color: var(--accent);
+          box-shadow: 0 0 6px var(--accent);
         }
 
         .settings-title {
           font-family: var(--font-display);
-          font-size: 1.25rem;
-          font-weight: 400;
+          font-size: 0.9375rem;
+          font-weight: 700;
           color: var(--ink);
+          letter-spacing: 0.04em;
+          margin: 0;
+        }
+
+        .modal-close-btn-tech {
+          width: 30px;
+          height: 30px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          background: var(--surface-2);
+          color: var(--ink-2);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 100ms ease;
+        }
+
+        .modal-close-btn-tech:hover {
+          color: var(--ink);
+          border-color: var(--ink-2);
         }
 
         .settings-content {
-          padding: 20px;
+          padding: 20px 20px calc(24px + var(--safe-bottom)) 20px;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 24px;
         }
 
         .settings-block {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          padding-bottom: 20px;
+          border-bottom: 1px solid var(--border);
         }
 
-        .region-header-row {
+        .settings-block:last-child {
+          padding-bottom: 0;
+          border-bottom: none;
+        }
+
+        .block-header-row {
           display: flex;
           align-items: center;
           justify-content: space-between;
         }
 
         .settings-label {
+          font-family: var(--font-mono);
           font-size: 0.6875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.08em;
+          letter-spacing: 0.06em;
           color: var(--ink-2);
-          font-weight: 600;
+          font-weight: 700;
         }
 
         .settings-desc {
+          font-family: var(--font-ui);
           font-size: 0.8125rem;
           color: var(--ink-2);
-          line-height: 1.5;
+          line-height: 1.45;
         }
 
-        .region-dropdown {
-          background: var(--surface);
+        .select-wrap-tech {
+          margin-top: 4px;
+        }
+
+        .region-dropdown-tech {
+          background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           color: var(--ink);
-          font-size: 0.8125rem;
-          height: 38px;
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          height: 40px;
           padding: 0 12px;
           cursor: pointer;
           width: 100%;
         }
 
-        .region-dropdown:focus {
-          border-color: var(--accent);
+        .region-dropdown-tech:focus {
+          border-color: var(--ink-2);
         }
 
-        .auth-region-field {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
+        /* Unified High-Contrast Action Buttons */
+        .peer-actions-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 8px;
+          margin-top: 6px;
         }
 
-        .auth-field-label {
+        .btn-action-tech {
+          height: 38px;
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          background: var(--surface-2);
+          color: var(--ink);
+          font-family: var(--font-mono);
           font-size: 0.6875rem;
-          text-transform: uppercase;
-          letter-spacing: 0.06em;
-          color: var(--ink-2);
-          font-weight: 600;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          cursor: pointer;
+          transition: all 100ms ease;
+          user-select: none;
         }
 
-        .divider-line {
-          height: 1px;
-          background: var(--border);
-          margin: 2px 0;
+        .btn-action-tech:hover {
+          border-color: var(--ink-2);
+          background: var(--surface-3);
+        }
+
+        .btn-action-tech.primary {
+          background: var(--ink);
+          color: var(--bg);
+          border-color: var(--ink);
+        }
+
+        .btn-action-tech.primary:hover {
+          filter: brightness(0.9);
+        }
+
+        .file-label-btn {
+          margin: 0;
         }
 
         /* Cloud Session Box */
         .cloud-session-box {
-          padding: 14px;
-          background: var(--surface);
+          padding: 12px 14px;
+          background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           display: flex;
           flex-direction: column;
-          gap: 14px;
+          gap: 10px;
         }
 
         .session-user-line {
@@ -460,55 +564,35 @@ export const SettingsModal: React.FC = () => {
         .user-profile-info {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
         }
 
         .user-badge {
-          font-family: var(--font-display);
-          font-size: 1.1rem;
+          font-family: var(--font-mono);
+          font-size: 0.8125rem;
+          font-weight: 700;
           color: var(--ink);
+          letter-spacing: 0.02em;
         }
 
-        .logout-btn {
-          color: var(--ink-2);
-          font-size: 0.75rem;
+        .logout-btn-tech {
+          font-family: var(--font-mono);
+          color: var(--ink-3);
+          font-size: 0.6875rem;
+          font-weight: 600;
           display: inline-flex;
           align-items: center;
           gap: 4px;
         }
 
-        .logout-btn:hover {
-          color: oklch(65% 0.2 25);
-        }
-
-        .sync-actions-row {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 8px;
-          flex-wrap: wrap;
-        }
-
-        .sync-btn {
-          font-size: 0.8125rem;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-
-        .restore-cloud-btn {
-          font-size: 0.75rem;
-          color: var(--ink-2);
-        }
-
-        .restore-cloud-btn:hover {
-          color: var(--ink);
+        .logout-btn-tech:hover {
+          color: var(--accent);
         }
 
         /* Cloud Auth Form */
         .cloud-auth-form {
           padding: 14px;
-          background: var(--surface);
+          background: var(--surface-2);
           border: 1px solid var(--border);
           border-radius: var(--radius-sm);
           display: flex;
@@ -518,24 +602,22 @@ export const SettingsModal: React.FC = () => {
 
         .auth-mode-toggle {
           display: flex;
-          gap: 16px;
+          gap: 12px;
           border-bottom: 1px solid var(--border);
           padding-bottom: 8px;
         }
 
         .auth-mode-btn {
-          font-family: var(--font-ui);
-          font-size: 0.8125rem;
-          font-weight: 500;
-          color: var(--ink-2);
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          font-weight: 700;
+          color: var(--ink-3);
           background: transparent;
-          position: relative;
           padding: 2px 0;
         }
 
         .auth-mode-btn.active {
-          color: var(--accent);
-          font-weight: 600;
+          color: var(--ink);
         }
 
         .auth-inputs-grid {
@@ -551,65 +633,55 @@ export const SettingsModal: React.FC = () => {
         }
 
         .api-input {
-          font-size: 0.8125rem;
           height: 36px;
+          font-family: var(--font-mono);
+          font-size: 0.75rem;
+          background: var(--bg);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          padding: 0 10px;
+          color: var(--ink);
+        }
+
+        .api-input:focus {
+          border-color: var(--ink-2);
         }
 
         .password-input-wrap {
           position: relative;
           display: flex;
           align-items: center;
-          width: 100%;
         }
 
         .password-input {
-          padding-right: 36px;
+          padding-right: 32px;
           width: 100%;
         }
 
         .btn-show-password {
           position: absolute;
-          right: 4px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: var(--ink-2);
-          padding: 6px;
-          border-radius: var(--radius-sm);
+          right: 6px;
+          color: var(--ink-3);
+          padding: 4px;
           background: transparent;
-          cursor: pointer;
-          transition: color 150ms ease;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .btn-show-password:hover {
-          color: var(--ink);
+          border: none;
         }
 
         .btn-primary-auth {
-          background: var(--accent);
-          color: #ffffff;
-          font-size: 0.8125rem;
-          font-weight: 600;
-          padding: 9px 14px;
+          height: 36px;
+          font-family: var(--font-mono);
+          background: var(--ink);
+          color: var(--bg);
           border-radius: var(--radius-sm);
-          transition: filter 150ms ease;
-          width: 100%;
+          font-size: 0.75rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          border: none;
+          transition: filter 100ms ease;
         }
 
         .btn-primary-auth:hover {
-          filter: brightness(1.1);
-        }
-
-        .backup-row {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .file-label-btn {
-          cursor: pointer;
+          filter: brightness(0.9);
         }
 
         .spinning {
@@ -617,10 +689,7 @@ export const SettingsModal: React.FC = () => {
         }
 
         @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
+          100% {
             transform: rotate(360deg);
           }
         }

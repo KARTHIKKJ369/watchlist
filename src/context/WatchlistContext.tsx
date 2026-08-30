@@ -29,6 +29,7 @@ interface WatchlistContextType {
   setActiveTab: (tab: 'watchlist' | 'releases' | 'stats') => void;
   selectedItem: WatchlistItem | null;
   isAddModalOpen: boolean;
+  addModalPrefill: string;
   isSettingsModalOpen: boolean;
   toasts: ToastMessage[];
   stats: WatchlistStats;
@@ -83,6 +84,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [activeTab, setActiveTab] = useState<'watchlist' | 'releases' | 'stats'>('watchlist');
   const [selectedItem, setSelectedItem] = useState<WatchlistItem | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [addModalPrefill, setAddModalPrefill] = useState<string>('');
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -139,7 +141,6 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     const nextTheme: 'light' | 'dark' = resolvedTheme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
     localStorage.setItem(THEME_KEY, nextTheme);
-    showToast(`Switched to ${nextTheme} mode`, 'info');
   };
 
   // Sync to localStorage
@@ -358,7 +359,11 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       triggerHaptic('success');
       showToast(`Added "${newItem.title}" to collection`, 'success');
     } else {
-      triggerHaptic('light');
+      if (updates.status === 'completed') {
+        triggerHaptic('success');
+      } else {
+        triggerHaptic('light');
+      }
     }
 
     setWatchlist(nextList);
@@ -373,7 +378,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   };
 
   const openDetailModal = async (item: WatchlistItem) => {
-    triggerHaptic('light');
+    triggerHaptic('selection');
     setSelectedItem(item);
 
     if (item.tmdbId) {
@@ -417,12 +422,14 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     setSelectedItem(null);
   };
 
-  const openAddModal = () => {
+  const openAddModal = (prefillTitle?: string) => {
+    setAddModalPrefill(prefillTitle || '');
     setIsAddModalOpen(true);
   };
 
   const closeAddModal = () => {
     setIsAddModalOpen(false);
+    setAddModalPrefill('');
   };
 
   const openSettingsModal = () => {
@@ -532,6 +539,7 @@ export const WatchlistProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setActiveTab,
         selectedItem,
         isAddModalOpen,
+        addModalPrefill,
         isSettingsModalOpen,
         toasts,
         stats,

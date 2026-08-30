@@ -11,6 +11,7 @@ import {
 } from '@phosphor-icons/react';
 import type { WatchStatus } from '../types';
 import { useWatchlist } from '../context/WatchlistContext';
+import { triggerHaptic } from '../services/nativeService';
 
 export const DetailModal: React.FC = () => {
   const {
@@ -23,24 +24,23 @@ export const DetailModal: React.FC = () => {
     showToast,
   } = useWatchlist();
 
-  if (!selectedItem) return null;
-
-  const [status, setStatus] = useState<WatchStatus>(selectedItem.status);
-  const [userRating, setUserRating] = useState<number>(selectedItem.userRating || 0);
-  const [userNotes, setUserNotes] = useState<string>(selectedItem.userNotes || '');
-  const [rewatchCount, setRewatchCount] = useState<number>(selectedItem.rewatchCount || 0);
+  const [status, setStatus] = useState<WatchStatus>(selectedItem?.status || 'plan_to_watch');
+  const [userRating, setUserRating] = useState<number>(selectedItem?.userRating || 0);
+  const [userNotes, setUserNotes] = useState<string>(selectedItem?.userNotes || '');
+  const [rewatchCount, setRewatchCount] = useState<number>(selectedItem?.rewatchCount || 0);
   const [isPlayingTrailer, setIsPlayingTrailer] = useState<boolean>(false);
-  const [tags, setTags] = useState<string[]>(selectedItem.tags || []);
+  const [tags, setTags] = useState<string[]>(selectedItem?.tags || []);
   const [newTag, setNewTag] = useState('');
   const [isRatingPickerOpen, setIsRatingPickerOpen] = useState(false);
   const [backdropFailed, setBackdropFailed] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const [showAllCast, setShowAllCast] = useState(false);
   const [isEditingArtwork, setIsEditingArtwork] = useState(false);
-  const [customPosterInput, setCustomPosterInput] = useState(selectedItem.posterPath || '');
-  const [customBackdropInput, setCustomBackdropInput] = useState(selectedItem.backdropPath || '');
+  const [customPosterInput, setCustomPosterInput] = useState(selectedItem?.posterPath || '');
+  const [customBackdropInput, setCustomBackdropInput] = useState(selectedItem?.backdropPath || '');
 
   useEffect(() => {
+    if (!selectedItem) return;
     setStatus(selectedItem.status);
     setUserRating(selectedItem.userRating || 0);
     setUserNotes(selectedItem.userNotes || '');
@@ -64,12 +64,20 @@ export const DetailModal: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [closeDetailModal]);
 
+  if (!selectedItem) return null;
+
   const handleStatusChange = (newStatus: WatchStatus) => {
     setStatus(newStatus);
+    if (newStatus === 'completed') {
+      triggerHaptic('success');
+    } else {
+      triggerHaptic('selection');
+    }
     updateWatchlistItem(selectedItem.id, { status: newStatus });
   };
 
   const handleRatingSelect = (rating: number) => {
+    triggerHaptic('selection');
     setUserRating(rating);
     updateWatchlistItem(selectedItem.id, { userRating: rating });
     setIsRatingPickerOpen(false);
@@ -80,6 +88,7 @@ export const DetailModal: React.FC = () => {
   };
 
   const handleIncrementRewatch = () => {
+    triggerHaptic('light');
     const next = rewatchCount + 1;
     setRewatchCount(next);
     updateWatchlistItem(selectedItem.id, { rewatchCount: next });
@@ -101,6 +110,7 @@ export const DetailModal: React.FC = () => {
   };
 
   const handleConfirmDelete = () => {
+    triggerHaptic('warning');
     removeFromWatchlist(selectedItem.id);
     closeDetailModal();
   };
@@ -193,10 +203,10 @@ export const DetailModal: React.FC = () => {
       <motion.div
         className="modal-sheet detail-sheet"
         onClick={(e) => e.stopPropagation()}
-        initial={{ opacity: 0, y: 15 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 15 }}
-        transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+        initial={{ opacity: 0, y: 32, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 24, scale: 0.985 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       >
         <button className="modal-close-trigger" onClick={closeDetailModal} aria-label="Close">
           <X size={18} />
@@ -576,7 +586,10 @@ export const DetailModal: React.FC = () => {
               <span className="log-label">Your Rating</span>
               <div
                 className="rating-display-large"
-                onClick={() => setIsRatingPickerOpen(!isRatingPickerOpen)}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setIsRatingPickerOpen(!isRatingPickerOpen);
+                }}
                 title="Click to rate"
               >
                 <span className="rating-value-big">{userRating > 0 ? userRating : '—'}</span>
@@ -654,28 +667,38 @@ export const DetailModal: React.FC = () => {
               />
             </div>
 
-            {/* Actions: Remove with Inline Confirmation when in collection */}
+            {/* Actions: In-Place Minimalist Remove Button (Zero Scroll, In-Place Confirmation) */}
             {isAlreadyInCollection && (
               <div className="log-footer">
                 {isConfirmingDelete ? (
-                  <div className="confirm-delete-box">
-                    <span className="confirm-delete-prompt">Remove from collection?</span>
-                    <div className="confirm-delete-actions">
-                      <button className="btn-danger-confirm" onClick={handleConfirmDelete}>
-                        Remove
-                      </button>
-                      <button
-                        className="btn-minimal btn-cancel-delete"
-                        onClick={() => setIsConfirmingDelete(false)}
-                      >
-                        Cancel
-                      </button>
-                    </div>
+                  <div className="delete-confirm-inline-bar">
+                    <button
+                      className="btn-delete-cancel"
+                      onClick={() => {
+                        triggerHaptic('light');
+                        setIsConfirmingDelete(false);
+                      }}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      className="btn-delete-execute"
+                      onClick={handleConfirmDelete}
+                    >
+                      <Trash size={14} weight="fill" />
+                      <span>Confirm Remove</span>
+                    </button>
                   </div>
                 ) : (
-                  <button className="btn-minimal delete-link" onClick={() => setIsConfirmingDelete(true)}>
-                    <Trash size={14} />
-                    <span>Remove from collection</span>
+                  <button
+                    className="btn-remove-vault"
+                    onClick={() => {
+                      triggerHaptic('warning');
+                      setIsConfirmingDelete(true);
+                    }}
+                  >
+                    <Trash size={14} weight="regular" />
+                    <span>Remove from Vault</span>
                   </button>
                 )}
               </div>
@@ -722,7 +745,16 @@ export const DetailModal: React.FC = () => {
         }
 
         @media (max-width: 768px) {
+          .detail-sheet {
+            height: 100vh;
+            max-height: 100vh;
+            width: 100vw;
+            border-radius: 0;
+            border: none;
+          }
+
           .modal-close-trigger {
+            top: max(16px, calc(12px + var(--safe-top)));
             background: rgba(0, 0, 0, 0.7);
             color: #ffffff;
             border-color: rgba(255, 255, 255, 0.25);
@@ -950,18 +982,18 @@ export const DetailModal: React.FC = () => {
           inset: 0;
           background: linear-gradient(
             180deg,
-            rgba(0, 0, 0, 0.15) 0%,
-            rgba(0, 0, 0, 0.4) 40%,
-            rgba(0, 0, 0, 0.85) 85%,
-            rgba(0, 0, 0, 0.98) 100%
+            rgba(0, 0, 0, 0.12) 0%,
+            rgba(0, 0, 0, 0.45) 45%,
+            rgba(11, 12, 16, 0.88) 78%,
+            var(--surface) 100%
           );
         }
 
         .backdrop-caption {
           position: absolute;
-          bottom: 20px;
-          left: 24px;
-          right: 24px;
+          bottom: 16px;
+          left: 20px;
+          right: 20px;
           z-index: 2;
           display: flex;
           flex-direction: column;
@@ -970,17 +1002,18 @@ export const DetailModal: React.FC = () => {
 
         .detail-title {
           font-family: var(--font-display);
-          font-size: 2.2rem;
-          font-weight: 400;
+          font-size: clamp(1.25rem, 4vw, 1.85rem);
+          font-weight: 500;
           color: #ffffff;
-          line-height: 1.15;
-          letter-spacing: -0.02em;
-          text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+          line-height: 1.2;
+          letter-spacing: -0.01em;
+          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+          margin: 0;
         }
 
         .detail-tagline {
           font-family: var(--font-display);
-          font-size: 1.05rem;
+          font-size: 0.9375rem;
           font-style: italic;
           color: var(--accent);
           line-height: 1.3;
@@ -1014,21 +1047,27 @@ export const DetailModal: React.FC = () => {
         }
 
         .discovery-body {
-          padding: 24px;
+          padding: 20px 24px 24px 24px;
           display: flex;
           flex-direction: column;
           gap: 20px;
         }
 
-        /* Specs Strip */
+        @media (max-width: 768px) {
+          .discovery-body {
+            padding: 16px;
+          }
+        }
+
+        /* Specs Strip with Consistent Rounded Language */
         .specs-strip {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-          gap: 14px;
-          padding: 12px 14px;
-          background: var(--surface);
+          grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--surface-2);
           border: 1px solid var(--border);
-          border-radius: var(--radius-sm);
+          border-radius: var(--radius-md);
         }
 
         .spec-item {
@@ -1537,53 +1576,107 @@ export const DetailModal: React.FC = () => {
           text-transform: uppercase;
         }
 
-        .delete-link {
-          color: var(--ink-2);
-          font-size: 0.75rem;
+        .log-footer {
+          margin-top: 8px;
+          padding-top: 16px;
+          border-top: 1px solid var(--border);
         }
 
-        .delete-link:hover {
-          color: oklch(65% 0.2 25);
-        }
-
-        /* Inline Delete Confirmation */
-        .confirm-delete-box {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 10px 12px;
-          background: var(--surface);
-          border: 1px solid oklch(65% 0.2 25 / 0.4);
-          border-radius: var(--radius-sm);
-        }
-
-        .confirm-delete-prompt {
-          font-size: 0.75rem;
-          color: var(--ink);
-          font-weight: 500;
-        }
-
-        .confirm-delete-actions {
-          display: flex;
+        .btn-remove-vault {
+          width: 100%;
+          display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
-        }
-
-        .btn-danger-confirm {
-          background: oklch(60% 0.22 25);
-          color: #ffffff;
-          font-size: 0.75rem;
-          font-weight: 600;
-          padding: 4px 10px;
+          padding: 8px 14px;
+          font-family: var(--font-ui);
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: var(--ink-2);
+          border: 1px solid var(--border);
           border-radius: var(--radius-sm);
+          background: transparent;
+          cursor: pointer;
+          transition: all 150ms ease;
         }
 
-        .btn-danger-confirm:hover {
-          background: oklch(55% 0.22 25);
+        .btn-remove-vault:hover {
+          color: oklch(62% 0.22 25);
+          border-color: oklch(62% 0.22 25 / 0.4);
+          background: oklch(62% 0.22 25 / 0.06);
         }
 
-        .btn-cancel-delete {
-          font-size: 0.75rem;
+        .btn-remove-vault:active {
+          transform: scale(0.98);
+        }
+
+        /* In-Place Sleek Delete Confirmation Bar (Zero Shift, Zero Scroll) */
+        .delete-confirm-inline-bar {
+          display: grid;
+          grid-template-columns: 1fr 1.3fr;
+          gap: 8px;
+          width: 100%;
+          height: 38px;
+          animation: fadeIn 140ms ease-out;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: scale(0.98); }
+          to { opacity: 1; transform: scale(1); }
+        }
+
+        .btn-delete-cancel {
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-family: var(--font-ui);
+          font-size: 0.8125rem;
+          font-weight: 500;
+          color: var(--ink-2);
+          background: var(--surface);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: all 140ms ease;
+          touch-action: manipulation;
+        }
+
+        .btn-delete-cancel:hover {
+          color: var(--ink);
+          border-color: var(--ink-2);
+          background: var(--surface-2);
+        }
+
+        .btn-delete-cancel:active {
+          transform: scale(0.98);
+        }
+
+        .btn-delete-execute {
+          height: 38px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          font-family: var(--font-ui);
+          font-size: 0.8125rem;
+          font-weight: 600;
+          color: #ffffff;
+          background: oklch(58% 0.22 25);
+          border: 1px solid oklch(58% 0.22 25);
+          border-radius: var(--radius-sm);
+          cursor: pointer;
+          transition: filter 140ms ease, transform 120ms ease;
+          box-shadow: 0 2px 10px oklch(58% 0.22 25 / 0.35);
+          touch-action: manipulation;
+        }
+
+        .btn-delete-execute:hover {
+          filter: brightness(1.1);
+        }
+
+        .btn-delete-execute:active {
+          transform: scale(0.98);
         }
       `}</style>
     </div>

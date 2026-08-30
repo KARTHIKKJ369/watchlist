@@ -14,10 +14,10 @@ export async function updateNativeStatusBar(theme: 'light' | 'dark'): Promise<vo
   try {
     if (theme === 'light') {
       await StatusBar.setStyle({ style: Style.Light });
-      await StatusBar.setBackgroundColor({ color: '#f6f5f2' });
+      await StatusBar.setBackgroundColor({ color: '#f5f5f1' });
     } else {
       await StatusBar.setStyle({ style: Style.Dark });
-      await StatusBar.setBackgroundColor({ color: '#0a0a0c' });
+      await StatusBar.setBackgroundColor({ color: '#000000' });
     }
   } catch (err) {
     console.debug('StatusBar adjustment error:', err);

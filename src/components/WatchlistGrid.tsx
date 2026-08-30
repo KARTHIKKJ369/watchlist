@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
+import { motion } from 'motion/react';
 import { Plus, Broadcast, FilmStrip } from '@phosphor-icons/react';
 import type { FilterState } from '../types';
 import { useWatchlist } from '../context/WatchlistContext';
 import { WatchlistItemCard } from './WatchlistItemCard';
 import { FilterSortBar } from './FilterSortBar';
-import { FrameLogo } from './FrameLogo';
 
 export const WatchlistGrid: React.FC = () => {
   const { watchlist, openAddModal, setActiveTab } = useWatchlist();
@@ -86,166 +86,169 @@ export const WatchlistGrid: React.FC = () => {
       });
   }, [watchlist, filters]);
 
-  // Brand New User / Empty Vault Onboarding Story
+  // Nothing Design Onboarding Hero
   if (watchlist.length === 0) {
     return (
-      <div className="onboarding-welcome-hero">
-        <div className="onboarding-icon-box">
-          <FrameLogo size={36} />
-        </div>
+      <div className="onboarding-nothing-hero">
+        <div className="onboarding-rec-pip" />
+        <h2 className="onboarding-title-nothing">YOUR PERSONAL CINEMA VAULT.</h2>
 
-        <h2 className="onboarding-headline">Your personal cinema vault.</h2>
-
-        <p className="onboarding-story">
-          FRAME is an intentional space to chronicle what you watch, what moved you, and what’s next on your screen — free from algorithmic noise, social feeds, and clutter.
+        <p className="onboarding-desc-nothing">
+          AN INTENTIONAL, MONOCHROME CINEMA LOG. TRACK WHAT YOU WATCH, RATE FILMS, AND DISCOVER OTT RELEASES WITH ZERO DISTRACTIONS.
         </p>
 
-        <div className="onboarding-cta-row">
-          <button className="btn-primary-hero-add" onClick={() => openAddModal()}>
+        <div className="onboarding-actions-nothing">
+          <button className="btn-nothing-hero-primary" onClick={() => openAddModal()}>
             <Plus size={16} weight="bold" />
-            <span>Add your first title</span>
+            <span>ADD FIRST TITLE</span>
           </button>
 
-          <button className="btn-outline btn-hero-releases" onClick={() => setActiveTab('releases')}>
-            <Broadcast size={16} />
-            <span>Explore OTT Releases</span>
+          <button
+            className="btn-nothing-hero-secondary"
+            onClick={() => setActiveTab('releases')}
+          >
+            <Broadcast size={16} weight="bold" />
+            <span>DISCOVER OTT</span>
           </button>
         </div>
 
-        <div className="quick-suggestions-block">
-          <span className="quick-suggestions-label">Or quick-start with a title you love:</span>
-          <div className="suggestion-pills-row">
-            {['Oppenheimer', 'Interstellar', 'Severance', 'Dune: Part Two', 'Past Lives', 'The Bear'].map((title) => (
+        <div className="suggestions-block-nothing">
+          <span className="suggestions-label-nothing">// POPULAR SUGGESTIONS:</span>
+          <div className="suggestions-grid-nothing">
+            {['Oppenheimer', 'Dune: Part Two', 'Severance', 'Past Lives', 'Succession'].map((title) => (
               <button
                 key={title}
-                className="suggestion-chip"
+                className="suggestion-chip-nothing"
                 onClick={() => openAddModal(title)}
               >
-                + {title}
+                + {title.toUpperCase()}
               </button>
             ))}
           </div>
         </div>
 
         <style>{`
-          .onboarding-welcome-hero {
-            padding: 80px 24px;
-            max-width: 680px;
-            margin: 0 auto;
+          .onboarding-nothing-hero {
             display: flex;
             flex-direction: column;
             align-items: center;
             text-align: center;
-            gap: 20px;
-          }
-
-          @media (max-width: 768px) {
-            .onboarding-welcome-hero {
-              padding: 40px 16px;
-            }
-          }
-
-          .onboarding-icon-box {
-            width: 56px;
-            height: 56px;
+            padding: 64px 20px;
+            max-width: 620px;
+            margin: 40px auto;
+            border: 1px solid var(--border);
             border-radius: var(--radius-sm);
             background: var(--surface);
-            border: 1px solid var(--border);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 4px;
           }
 
-          .onboarding-headline {
+          .onboarding-rec-pip {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--accent);
+            box-shadow: 0 0 12px var(--accent);
+            margin-bottom: 20px;
+          }
+
+          .onboarding-title-nothing {
             font-family: var(--font-display);
-            font-size: clamp(2rem, 5vw, 2.75rem);
-            font-weight: 400;
+            font-size: 1.75rem;
+            font-weight: 700;
             color: var(--ink);
-            line-height: 1.15;
             letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            line-height: 1.2;
           }
 
-          .onboarding-story {
-            font-family: var(--font-ui);
-            font-size: 0.95rem;
+          .onboarding-desc-nothing {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
             color: var(--ink-2);
-            line-height: 1.65;
-            max-width: 540px;
+            line-height: 1.6;
+            margin-bottom: 28px;
+            max-width: 480px;
+            letter-spacing: 0.04em;
           }
 
-          .onboarding-cta-row {
+          .onboarding-actions-nothing {
             display: flex;
-            align-items: center;
             gap: 12px;
-            margin-top: 8px;
             flex-wrap: wrap;
             justify-content: center;
+            width: 100%;
           }
 
-          .btn-primary-hero-add {
+          .btn-nothing-hero-primary {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
             background: var(--accent);
-            color: var(--bg);
-            font-size: 0.875rem;
-            font-weight: 600;
+            color: #ffffff;
             padding: 10px 20px;
             border-radius: var(--radius-sm);
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            transition: filter 150ms ease;
+            box-shadow: 0 2px 10px var(--accent-glow);
           }
 
-          .btn-primary-hero-add:hover {
+          .btn-nothing-hero-primary:hover {
             filter: brightness(1.1);
           }
 
-          .btn-hero-releases {
-            font-size: 0.875rem;
+          .btn-nothing-hero-secondary {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            background: var(--surface-2);
+            color: var(--ink);
+            border: 1px solid var(--border);
             padding: 10px 18px;
+            border-radius: var(--radius-sm);
           }
 
-          .quick-suggestions-block {
-            margin-top: 24px;
+          .btn-nothing-hero-secondary:hover {
+            border-color: var(--ink-2);
+          }
+
+          .suggestions-block-nothing {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px dashed var(--border);
+            width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 12px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border);
-            width: 100%;
           }
 
-          .quick-suggestions-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
+          .suggestions-label-nothing {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
+            color: var(--ink-3);
             letter-spacing: 0.08em;
-            color: var(--ink-2);
-            font-weight: 600;
           }
 
-          .suggestion-pills-row {
+          .suggestions-grid-nothing {
             display: flex;
             flex-wrap: wrap;
             gap: 8px;
             justify-content: center;
           }
 
-          .suggestion-chip {
-            font-family: var(--font-ui);
-            font-size: 0.75rem;
+          .suggestion-chip-nothing {
+            font-family: var(--font-mono);
+            font-size: 0.6875rem;
             color: var(--ink-2);
-            background: var(--surface);
+            background: var(--surface-2);
             border: 1px solid var(--border);
             padding: 4px 10px;
-            border-radius: var(--radius-sm);
-            transition: all 150ms ease;
+            border-radius: 2px;
+            transition: all 100ms ease;
           }
 
-          .suggestion-chip:hover {
+          .suggestion-chip-nothing:hover {
             color: var(--ink);
-            border-color: var(--accent);
-            background: var(--surface-2);
+            border-color: var(--ink-2);
           }
         `}</style>
       </div>
@@ -253,7 +256,7 @@ export const WatchlistGrid: React.FC = () => {
   }
 
   return (
-    <div className="watchlist-container">
+    <div className="watchlist-container-nothing">
       {/* Filter and Search Bar */}
       <FilterSortBar
         filters={filters}
@@ -263,16 +266,26 @@ export const WatchlistGrid: React.FC = () => {
 
       {/* Grid Display */}
       {filteredItems.length > 0 ? (
-        <div className="poster-grid">
-          {filteredItems.map((item) => (
-            <WatchlistItemCard key={item.id} item={item} />
+        <div className="poster-grid-nothing">
+          {filteredItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.2,
+                delay: Math.min(index * 0.03, 0.25),
+              }}
+            >
+              <WatchlistItemCard item={item} />
+            </motion.div>
           ))}
         </div>
       ) : (
         /* Filtered Empty State */
-        <div className="empty-state-minimal">
-          <FilmStrip size={28} color="var(--ink-2)" />
-          <p className="empty-title">No matching titles found in your vault.</p>
+        <div className="empty-state-nothing">
+          <FilmStrip size={24} color="var(--ink-3)" />
+          <p className="empty-title-nothing">// NO MATCHING TITLES IN VAULT</p>
           <button
             className="btn-outline"
             onClick={() =>
@@ -285,43 +298,47 @@ export const WatchlistGrid: React.FC = () => {
               })
             }
           >
-            Clear Filters
+            [CLEAR FILTERS]
           </button>
         </div>
       )}
 
       <style>{`
-        .watchlist-container {
+        .watchlist-container-nothing {
           display: flex;
           flex-direction: column;
         }
 
-        .poster-grid {
+        .poster-grid-nothing {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-          gap: 32px 20px;
+          gap: 28px 16px;
         }
 
         @media (max-width: 768px) {
-          .poster-grid {
+          .poster-grid-nothing {
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px 12px;
+            gap: 18px 12px;
           }
         }
 
-        .empty-state-minimal {
+        .empty-state-nothing {
           padding: 80px 24px;
           display: flex;
           flex-direction: column;
           align-items: center;
           text-align: center;
-          gap: 14px;
+          gap: 12px;
+          border: 1px dashed var(--border);
+          border-radius: var(--radius-sm);
+          margin-top: 16px;
         }
 
-        .empty-title {
-          font-family: var(--font-display);
-          font-size: 1.25rem;
+        .empty-title-nothing {
+          font-family: var(--font-mono);
+          font-size: 0.8125rem;
           color: var(--ink-2);
+          letter-spacing: 0.06em;
         }
       `}</style>
     </div>

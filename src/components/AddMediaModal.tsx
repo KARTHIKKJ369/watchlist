@@ -544,7 +544,9 @@ export const AddMediaModal: React.FC = () => {
           }
 
           .add-modal-header {
-            padding-top: max(14px, calc(10px + var(--safe-top)));
+            padding-top: max(20px, calc(14px + var(--safe-top)));
+            padding-left: 16px;
+            padding-right: 16px;
           }
         }
 

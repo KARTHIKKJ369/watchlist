@@ -6,6 +6,14 @@ import { App } from '@capacitor/app';
 
 export const isNative = Capacitor.isNativePlatform();
 
+if (isNative && typeof document !== 'undefined') {
+  document.documentElement.classList.add('is-native-app');
+  document.body?.classList.add('is-native-app');
+  window.addEventListener('DOMContentLoaded', () => {
+    document.body.classList.add('is-native-app');
+  });
+}
+
 /**
  * Configure and update Android / iOS native status bar to match active theme
  */

@@ -46,6 +46,14 @@
   --radius-pill: 9999px;
 }
 
+/* Native Android & iOS Capacitor Runtime */
+html.is-native-app,
+body.is-native-app,
+.is-native-app {
+  --safe-top: max(44px, env(safe-area-inset-top, 44px));
+  --safe-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+}
+
 [data-theme="light"] {
   /* Nothing Light Mode — Technical Warm Off-White */
   --bg:               #f5f5f1;

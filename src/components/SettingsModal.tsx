@@ -379,7 +379,10 @@ export const SettingsModal: React.FC = () => {
           }
 
           .settings-header {
-            padding-top: max(16px, calc(12px + var(--safe-top)));
+            padding-top: max(20px, calc(14px + var(--safe-top)));
+            padding-left: 16px;
+            padding-right: 16px;
+            padding-bottom: 12px;
           }
         }
 

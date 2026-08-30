@@ -754,11 +754,17 @@ export const DetailModal: React.FC = () => {
           }
 
           .modal-close-trigger {
-            top: max(16px, calc(12px + var(--safe-top)));
+            top: max(20px, calc(14px + var(--safe-top)));
+            right: 14px;
             background: rgba(0, 0, 0, 0.7);
             color: #ffffff;
             border-color: rgba(255, 255, 255, 0.25);
             backdrop-filter: blur(8px);
+          }
+
+          .btn-backdrop-edit-artwork {
+            top: max(20px, calc(14px + var(--safe-top)));
+            left: 14px;
           }
         }
 

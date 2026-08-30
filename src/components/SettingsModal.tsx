@@ -180,7 +180,7 @@ export const SettingsModal: React.FC = () => {
         transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
       >
         {/* Header */}
-        <div className="settings-header">
+        <div className="settings-header modal-header">
           <div className="settings-title-wrap">
             <span className="rec-dot-title" />
             <h2 className="settings-title">SYSTEM // SETTINGS</h2>
@@ -379,7 +379,7 @@ export const SettingsModal: React.FC = () => {
           }
 
           .settings-header {
-            padding-top: max(20px, calc(14px + var(--safe-top)));
+            padding-top: max(1rem, env(safe-area-inset-top));
             padding-left: 16px;
             padding-right: 16px;
             padding-bottom: 12px;
@@ -390,7 +390,7 @@ export const SettingsModal: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 16px 20px;
+          padding: max(1rem, env(safe-area-inset-top)) 20px 16px 20px;
           border-bottom: 1px solid var(--border);
           position: sticky;
           top: 0;

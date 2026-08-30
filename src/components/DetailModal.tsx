@@ -722,7 +722,7 @@ export const DetailModal: React.FC = () => {
 
         .modal-close-trigger {
           position: absolute;
-          top: 16px;
+          top: max(16px, calc(12px + env(safe-area-inset-top)));
           right: 16px;
           z-index: 30;
           color: var(--ink);
@@ -754,7 +754,7 @@ export const DetailModal: React.FC = () => {
           }
 
           .modal-close-trigger {
-            top: max(20px, calc(14px + var(--safe-top)));
+            top: max(16px, calc(12px + env(safe-area-inset-top)));
             right: 14px;
             background: rgba(0, 0, 0, 0.7);
             color: #ffffff;
@@ -763,7 +763,7 @@ export const DetailModal: React.FC = () => {
           }
 
           .btn-backdrop-edit-artwork {
-            top: max(20px, calc(14px + var(--safe-top)));
+            top: max(16px, calc(12px + env(safe-area-inset-top)));
             left: 14px;
           }
         }
@@ -825,7 +825,7 @@ export const DetailModal: React.FC = () => {
 
         .btn-backdrop-edit-artwork {
           position: absolute;
-          top: 14px;
+          top: max(16px, calc(12px + env(safe-area-inset-top)));
           left: 14px;
           z-index: 10;
           display: inline-flex;

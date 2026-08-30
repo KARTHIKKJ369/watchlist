@@ -189,7 +189,7 @@ export const AddMediaModal: React.FC = () => {
         transition={{ type: 'spring', stiffness: 380, damping: 30 }}
       >
         {/* Header */}
-        <div className="add-modal-header">
+        <div className="add-modal-header modal-header">
           <div className="add-tabs-strip">
             <button
               className={`add-tab-link ${activeTab === 'search' ? 'active' : ''}`}
@@ -544,9 +544,10 @@ export const AddMediaModal: React.FC = () => {
           }
 
           .add-modal-header {
-            padding-top: max(20px, calc(14px + var(--safe-top)));
+            padding-top: max(1rem, env(safe-area-inset-top));
             padding-left: 16px;
             padding-right: 16px;
+            padding-bottom: 14px;
           }
         }
 
@@ -554,7 +555,7 @@ export const AddMediaModal: React.FC = () => {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          padding: 14px 20px;
+          padding: max(1rem, env(safe-area-inset-top)) 20px 14px 20px;
           border-bottom: 1px solid var(--border);
           flex-shrink: 0;
           background: var(--bg);

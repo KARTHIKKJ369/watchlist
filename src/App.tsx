@@ -10,6 +10,8 @@ import { DetailModal } from './components/DetailModal';
 import { AddMediaModal } from './components/AddMediaModal';
 import { SettingsModal } from './components/SettingsModal';
 import { ToastContainer } from './components/ToastContainer';
+import { Capacitor } from '@capacitor/core';
+import { StatusBar, Style } from '@capacitor/status-bar';
 import { hideNativeSplash, registerBackButtonHandler, triggerHaptic } from './services/nativeService';
 
 const MainApp: React.FC = () => {
@@ -71,6 +73,19 @@ const MainApp: React.FC = () => {
   }, [openAddModal, selectedItem, isAddModalOpen, isSettingsModalOpen]);
 
   useEffect(() => {
+    // Configure StatusBar so it does not overlay WebView on native platforms
+    if (Capacitor.isNativePlatform()) {
+      StatusBar.setOverlaysWebView({ overlay: false }).catch((err) => {
+        console.debug('StatusBar overlay config error:', err);
+      });
+      StatusBar.setStyle({ style: Style.Dark }).catch((err) => {
+        console.debug('StatusBar style config error:', err);
+      });
+      StatusBar.setBackgroundColor({ color: '#000000' }).catch((err) => {
+        console.debug('StatusBar background config error:', err);
+      });
+    }
+
     // Hide native splash screen once UI is ready
     hideNativeSplash();
 

@@ -50,8 +50,8 @@
 html.is-native-app,
 body.is-native-app,
 .is-native-app {
-  --safe-top: max(44px, env(safe-area-inset-top, 44px));
-  --safe-bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 [data-theme="light"] {
@@ -327,6 +327,12 @@ input::placeholder, textarea::placeholder {
   font-size: 0.6875rem;
   font-weight: 400;
   margin-left: 1px;
+}
+
+/* Safe-area safeguard for fixed/sticky headers and modal headers */
+.app-header,
+.modal-header {
+  padding-top: max(1rem, env(safe-area-inset-top));
 }
 
 /* Universal Native Modal & Bottom Sheet Overlays */

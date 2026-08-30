@@ -15,11 +15,26 @@ if (isNative && typeof document !== 'undefined') {
 }
 
 /**
+ * Initialize native status bar settings so it doesn't overlay the WebView
+ */
+export async function initNativeStatusBar(): Promise<void> {
+  if (!isNative) return;
+  try {
+    await StatusBar.setOverlaysWebView({ overlay: false });
+    await StatusBar.setStyle({ style: Style.Dark });
+    await StatusBar.setBackgroundColor({ color: '#000000' });
+  } catch (err) {
+    console.debug('StatusBar initialization error:', err);
+  }
+}
+
+/**
  * Configure and update Android / iOS native status bar to match active theme
  */
 export async function updateNativeStatusBar(theme: 'light' | 'dark'): Promise<void> {
   if (!isNative) return;
   try {
+    await StatusBar.setOverlaysWebView({ overlay: false });
     if (theme === 'light') {
       await StatusBar.setStyle({ style: Style.Light });
       await StatusBar.setBackgroundColor({ color: '#f5f5f1' });

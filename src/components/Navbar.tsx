@@ -30,7 +30,7 @@ export const Navbar: React.FC = () => {
   return (
     <>
       {/* Nothing Top Navigation Bar */}
-      <header className="navbar-bar">
+      <header className="navbar-bar app-header">
         <div className="navbar-inner">
           {/* Brand Logotype in Doto / Space Mono */}
           <div className="navbar-brand" onClick={() => handleTabChange('watchlist')}>
@@ -176,8 +176,8 @@ export const Navbar: React.FC = () => {
           z-index: 50;
           background: var(--bg);
           border-bottom: 1px solid var(--border);
-          padding-top: var(--safe-top);
-          height: calc(var(--header-height) + var(--safe-top));
+          padding-top: env(safe-area-inset-top, 0px);
+          height: calc(var(--header-height) + env(safe-area-inset-top, 0px));
           transition: background-color 150ms ease, border-color 150ms ease;
         }
 

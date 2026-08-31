@@ -5,7 +5,7 @@
 <h1 align="center">FRAME</h1>
 
 <p align="center">
-  <strong>An intentional, distraction-free cinema vault & OTT streaming release tracker for cinephiles.</strong>
+  <strong>An intentional, distraction-free cinema vault & OTT streaming release tracker for cinephiles</strong>
 </p>
 
 <p align="center">

@@ -76,27 +76,77 @@ export const setCustomReadAccessToken = (token: string) => {
   }
 };
 
-// Unified fetch handler supporting both v3 API Key & v4 Read Access Token (Bearer)
-const tmdbFetch = async (endpoint: string, searchParams: Record<string, string> = {}): Promise<Response> => {
+import { getWorkerApiUrl } from './cloudSync';
+
+// Unified fetch handler supporting Worker Proxy, v3 API Key & v4 Read Access Token (Bearer) with timeout protection
+const tmdbFetch = async (
+  endpoint: string,
+  searchParams: Record<string, string> = {},
+  timeoutMs = 8000
+): Promise<Response> => {
   const readToken = getReadAccessToken();
   const apiKey = getApiKey();
+  const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const workerApiUrl = getWorkerApiUrl();
 
-  const url = new URL(`${TMDB_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`);
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  };
+  if (readToken) {
+    headers['Authorization'] = `Bearer ${readToken}`;
+  }
+
+  // 1. Try Cloudflare Worker Proxy first (bypasses ISP/mobile carrier blocks)
+  if (workerApiUrl) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+      const proxyUrl = new URL(`${workerApiUrl}/api/tmdb${cleanEndpoint}`);
+      Object.entries(searchParams).forEach(([k, v]) => {
+        proxyUrl.searchParams.set(k, v);
+      });
+      if (!readToken) {
+        proxyUrl.searchParams.set('api_key', apiKey);
+      }
+
+      const res = await fetch(proxyUrl.toString(), {
+        headers,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        return res;
+      }
+    } catch (err) {
+      console.warn('Worker TMDB proxy fetch failed, trying direct TMDB fallback', err);
+    }
+  }
+
+  // 2. Direct TMDB fallback (with timeout to prevent infinite loading on blocked networks)
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  const url = new URL(`${TMDB_BASE_URL}${cleanEndpoint}`);
   Object.entries(searchParams).forEach(([k, v]) => {
     url.searchParams.set(k, v);
   });
-
-  const headers: Record<string, string> = {
-    'Accept': 'application/json',
-  };
-
-  if (readToken) {
-    headers['Authorization'] = `Bearer ${readToken}`;
-  } else {
+  if (!readToken) {
     url.searchParams.set('api_key', apiKey);
   }
 
-  return fetch(url.toString(), { headers });
+  try {
+    const res = await fetch(url.toString(), {
+      headers,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return res;
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
+  }
 };
 
 export const getImageUrl = (

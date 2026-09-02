@@ -3,15 +3,27 @@ import type { WatchlistItem } from '../types';
 const AUTH_TOKEN_KEY = 'frame_auth_token';
 const AUTH_USER_KEY = 'frame_auth_user';
 
+const DEFAULT_WORKER_URL = 'https://watchlist.klkarthik369.workers.dev';
+
 export const getWorkerApiUrl = (): string => {
-  let url = ((import.meta as any).env?.VITE_API_URL || '').trim().replace(/\/+$/, '');
+  let url = (
+    (import.meta as any).env?.VITE_API_URL ||
+    localStorage.getItem('frame_worker_url') ||
+    ''
+  ).trim().replace(/\/+$/, '');
+
   if (!url && typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
+    const origin = window.location.origin;
+    if (!origin.includes('localhost') && !origin.startsWith('capacitor://') && !origin.startsWith('http://localhost')) {
+      return origin;
+    }
   }
+
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
     url = `https://${url}`;
   }
-  return url;
+
+  return url || DEFAULT_WORKER_URL;
 };
 
 export const getAuthToken = (): string => {

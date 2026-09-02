@@ -4,6 +4,7 @@ import {
   Check,
   GlobeHemisphereWest,
   FilmSlate,
+  ArrowsClockwise,
 } from '@phosphor-icons/react';
 import type { OTTReleaseItem, WatchlistItem } from '../types';
 import { fetchPlatformReleases } from '../services/tmdbApi';
@@ -19,17 +20,25 @@ export const ReleasesPage: React.FC = () => {
   >('all');
   const [releases, setReleases] = useState<OTTReleaseItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
 
-  useEffect(() => {
+  const loadReleases = (platform = selectedPlatform) => {
     setIsLoading(true);
-    fetchPlatformReleases(selectedPlatform)
+    setHasError(false);
+    fetchPlatformReleases(platform)
       .then((data) => {
         setReleases(data);
+        setHasError(data.length === 0);
         setIsLoading(false);
       })
       .catch(() => {
+        setHasError(true);
         setIsLoading(false);
       });
+  };
+
+  useEffect(() => {
+    loadReleases(selectedPlatform);
   }, [selectedPlatform, region]);
 
   const platforms: {
@@ -240,8 +249,24 @@ export const ReleasesPage: React.FC = () => {
         </div>
       ) : (
         <div className="empty-state-nothing">
-          <p className="empty-title-nothing">// NO RELEASES FOUND</p>
-          <p className="empty-desc-nothing">TRY SELECTING A DIFFERENT PLATFORM OR REGION.</p>
+          <p className="empty-title-nothing">// {hasError ? 'UNABLE TO LOAD RELEASES' : 'NO RELEASES FOUND'}</p>
+          <p className="empty-desc-nothing">
+            {hasError
+              ? 'TMDB SERVER / NETWORK CONNECTION TIMED OUT. TAP BELOW TO RETRY.'
+              : 'TRY SELECTING A DIFFERENT PLATFORM OR REGION.'}
+          </p>
+          {hasError && (
+            <button
+              className="btn-retry-nothing"
+              onClick={() => {
+                triggerHaptic('light');
+                loadReleases(selectedPlatform);
+              }}
+            >
+              <ArrowsClockwise size={13} weight="bold" />
+              <span>RETRY</span>
+            </button>
+          )}
         </div>
       )}
 
@@ -590,6 +615,31 @@ export const ReleasesPage: React.FC = () => {
           font-size: 0.6875rem;
           color: var(--ink-3);
           letter-spacing: 0.06em;
+          margin-bottom: 12px;
+        }
+
+        .btn-retry-nothing {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          background: var(--surface-2);
+          border: 1px solid var(--border);
+          border-radius: var(--radius-sm);
+          font-family: var(--font-mono);
+          font-size: 0.6875rem;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: var(--ink);
+          cursor: pointer;
+          transition: all 0.15s ease;
+          margin-top: 4px;
+        }
+
+        .btn-retry-nothing:hover {
+          background: var(--ink);
+          color: var(--bg);
+          border-color: var(--ink);
         }
       `}</style>
     </div>

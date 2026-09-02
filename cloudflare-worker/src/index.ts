@@ -171,15 +171,6 @@ export default {
         (val) => val && typeof val === 'object' && typeof (val as any).prepare === 'function'
       ) as D1Database | undefined);
 
-    if (!db && path.startsWith('/api/')) {
-      return jsonResponse({ error: 'D1 Database binding missing. Please attach your D1 database in Cloudflare Settings -> Bindings.' }, 500);
-    }
-
-    // Auto-ensure D1 tables exist on any API call
-    if (path.startsWith('/api/') && db) {
-      await ensureTablesExist(db);
-    }
-
     // Health check
     if (path === '/health' || path === '/api/health') {
       return jsonResponse({
@@ -187,6 +178,64 @@ export default {
         service: 'FRAME Serverless Cinema Vault API',
         time: new Date().toISOString(),
       });
+    }
+
+    // TMDB API Proxy Handler (Bypasses ISP & mobile carrier blocking of api.themoviedb.org)
+    if (path.startsWith('/api/tmdb')) {
+      const tmdbSubPath = path.replace(/^\/api\/tmdb\/?/, '');
+      const tmdbUrl = new URL(`https://api.themoviedb.org/3/${tmdbSubPath}`);
+
+      // Forward all query parameters
+      url.searchParams.forEach((val, key) => {
+        tmdbUrl.searchParams.set(key, val);
+      });
+
+      const reqHeaders = new Headers();
+      reqHeaders.set('Accept', 'application/json');
+
+      const clientAuth = request.headers.get('Authorization');
+      if (clientAuth) {
+        reqHeaders.set('Authorization', clientAuth);
+      } else if (env.TMDB_READ_ACCESS_TOKEN || env.VITE_TMDB_READ_ACCESS_TOKEN) {
+        reqHeaders.set('Authorization', `Bearer ${env.TMDB_READ_ACCESS_TOKEN || env.VITE_TMDB_READ_ACCESS_TOKEN}`);
+      } else if (!tmdbUrl.searchParams.has('api_key')) {
+        const apiKey = env.TMDB_API_KEY || env.VITE_TMDB_API_KEY || '4e44d9029b1270a757cddc766a1bcb63';
+        tmdbUrl.searchParams.set('api_key', apiKey);
+      }
+
+      try {
+        const tmdbRes = await fetch(tmdbUrl.toString(), {
+          method: request.method,
+          headers: reqHeaders,
+        });
+
+        const responseHeaders = new Headers(tmdbRes.headers);
+        responseHeaders.set('Access-Control-Allow-Origin', '*');
+        responseHeaders.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        responseHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+        // Edge cache GET responses for 5 minutes for blazing fast feed loads
+        if (request.method === 'GET' && tmdbRes.status === 200) {
+          responseHeaders.set('Cache-Control', 'public, max-age=300, s-maxage=600, stale-while-revalidate=1200');
+        }
+
+        return new Response(tmdbRes.body, {
+          status: tmdbRes.status,
+          headers: responseHeaders,
+        });
+      } catch (err: any) {
+        return jsonResponse({ error: 'TMDB proxy fetch failed', details: err?.message }, 502);
+      }
+    }
+
+    const isVaultOrAuth = path.startsWith('/api/auth/') || path.startsWith('/api/vault');
+    if (!db && isVaultOrAuth) {
+      return jsonResponse({ error: 'D1 Database binding missing. Please attach your D1 database in Cloudflare Settings -> Bindings.' }, 500);
+    }
+
+    // Auto-ensure D1 tables exist on auth/vault API calls
+    if (isVaultOrAuth && db) {
+      await ensureTablesExist(db);
     }
 
     // Serve Frontend React SPA Static Assets for all non-API routes
